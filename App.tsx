@@ -768,8 +768,8 @@ export const App: React.FC = () => {
   const [openRouterKey, setOpenRouterKey] = useState<string>('');
   const [openRouterModel, setOpenRouterModel] = useState<string>('meta-llama/llama-3.1-8b-instruct:free');
   const [openRouterUrl, setOpenRouterUrl] = useState<string>('https://openrouter.ai/api/v1');
-  // Pollinations
-  const [pollinationsUrl, setPollinationsUrl] = useState<string>(() => localStorage.getItem('audioarc_pollinations_url') || 'https://text.pollinations.ai/');
+  // Pollinations (Modern OpenAI-Compatible & High-Performance API)
+  const [pollinationsUrl, setPollinationsUrl] = useState<string>(() => localStorage.getItem('audioarc_pollinations_url') || 'https://gen.pollinations.ai/v1');
   const [pollinationsModel, setPollinationsModel] = useState<string>(() => localStorage.getItem('audioarc_pollinations_model') || 'openai');
   const [pollinationsApiKey, setPollinationsApiKey] = useState<string>(() => localStorage.getItem('audioarc_pollinations_key') || '');
   const [availablePollinationsModels, setAvailablePollinationsModels] = useState<string[]>([
@@ -3757,11 +3757,21 @@ Note: "category" must be one of: "lighting", "camera", "color", "motion", "aesth
   
       if (imageProvider === 'pollinations') {
         // Pollinations free instant image generation
-        const cleanPrompt = prompt.trim().slice(0, 400);
+        // Modern gen.pollinations.ai API with Flux model & optional bearer token
+        const cleanPrompt = prompt.trim().slice(0, 450);
         const encodedPrompt = encodeURIComponent(cleanPrompt);
         const seed = Math.floor(Math.random() * 1000000);
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&nologo=true&seed=${seed}`;
-        const imgRes = await fetch(imageUrl);
+        const modernUrl = `https://gen.pollinations.ai/image/${encodedPrompt}?model=flux&width=1280&height=720&nologo=true&seed=${seed}`;
+        const headers: Record<string, string> = {};
+        if (pollinationsApiKey.trim()) {
+          headers['Authorization'] = `Bearer ${pollinationsApiKey.trim().replace(/^Bearer\s+/i, '')}`;
+        }
+
+        let imgRes = await fetch(modernUrl, { headers });
+        if (!imgRes.ok) {
+          // Fallback to image.pollinations.ai mirror if gen is temporarily busy
+          imgRes = await fetch(`https://image.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&nologo=true&seed=${seed}`);
+        }
         if (!imgRes.ok) throw new Error(`Pollinations Image Error: HTTP ${imgRes.status}`);
         const blob = await imgRes.blob();
         const reader = new FileReader();
