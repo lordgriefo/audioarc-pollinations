@@ -2,7 +2,15 @@
 
 > Transform audio tracks, lyrics, and creative visions into fully synchronized, shot-by-shot cinematic storyboards and multi-track animatics.
 
-# AudioArc: AI Filmmaking Assistant — Release v1.3.0
+# AudioArc: AI Filmmaking Assistant (Pollinations Edition)
+
+> Transform audio tracks, lyrics, and creative visions into fully synchronized, shot-by-shot cinematic storyboards and multi-track animatics — powered out-of-the-box by **Pollinations.ai** with zero API keys required.
+
+## 🌸 Pollinations.ai Native Integration
+* **Zero Setup Text AI**: Powered by `gen.pollinations.ai/v1` and `text.pollinations.ai` for generating scene shotlists, visual prompts, and cinematic scripts.
+* **Instant Free Storyboard Images**: Uses `image.pollinations.ai` to synthesize 1280x720 cinematic 16:9 storyboard keyframes for every scene.
+* **No API Key Required**: Enjoy uninhibited prompt generation and storyboard art right away, with optional API key support for elevated throughput.
+* **Multi-Provider Support**: Seamlessly switch between Pollinations, Google Gemini, OpenAI, Ollama (local), LM Studio, and OpenRouter whenever you want.
 
 ## 🎬 What's New in v1.3.0
 

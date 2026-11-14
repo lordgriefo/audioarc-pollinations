@@ -15,7 +15,7 @@ interface HeaderConnectionStatusProps {
   geminiImageModel: string;
   imageEngine: 'gemini' | 'imagen';
   imagenModel: string;
-  imageProvider: 'google' | 'openrouter';
+  imageProvider: 'google' | 'openrouter' | 'pollinations';
   openAIModel: string;
   ollamaModel: string;
   ollamaUrl: string;

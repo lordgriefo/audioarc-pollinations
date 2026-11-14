@@ -74,17 +74,39 @@ app.post('/api/gemini/ping', async (req, res) => {
 // Generate Content endpoint (handles text, structured JSON, multimodal inputs)
 app.post('/api/gemini/generate-content', async (req, res) => {
   try {
-    const { model = 'gemini-3.8-flash', contents, config } = req.body;
+    const { model = 'gemini-3.1-flash-lite', contents, config } = req.body;
     if (!contents) {
       return res.status(400).json({ error: 'Missing required "contents" in request body' });
     }
 
     const ai = getGenAI();
-    const response = await ai.models.generateContent({
-      model,
-      contents,
-      config,
-    });
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model,
+        contents,
+        config,
+      });
+    } catch (modelErr: any) {
+      const errMsg = String(modelErr?.message || modelErr);
+      const isCapacityError = 
+        errMsg.includes('503') || 
+        errMsg.includes('high demand') || 
+        errMsg.includes('UNAVAILABLE') ||
+        errMsg.includes('429') ||
+        errMsg.includes('RESOURCE_EXHAUSTED');
+
+      if (isCapacityError && model !== 'gemini-3.1-flash-lite') {
+        console.warn(`[Gemini Server] ${model} unavailable due to capacity (${errMsg.substring(0, 100)}). Auto-falling back to gemini-3.1-flash-lite...`);
+        response = await ai.models.generateContent({
+          model: 'gemini-3.1-flash-lite',
+          contents,
+          config,
+        });
+      } else {
+        throw modelErr;
+      }
+    }
 
     res.json({
       text: response.text || '',
@@ -103,7 +125,7 @@ app.post('/api/gemini/generate-content', async (req, res) => {
 // Streaming Content endpoint using Server-Sent Events (SSE)
 app.post('/api/gemini/generate-content-stream', async (req, res) => {
   try {
-    const { model = 'gemini-3.8-flash', contents, config } = req.body;
+    const { model = 'gemini-3.1-flash-lite', contents, config } = req.body;
     if (!contents) {
       return res.status(400).json({ error: 'Missing required "contents" in request body' });
     }
@@ -114,11 +136,32 @@ app.post('/api/gemini/generate-content-stream', async (req, res) => {
     res.flushHeaders?.();
 
     const ai = getGenAI();
-    const stream = await ai.models.generateContentStream({
-      model,
-      contents,
-      config,
-    });
+    let stream;
+    try {
+      stream = await ai.models.generateContentStream({
+        model,
+        contents,
+        config,
+      });
+    } catch (modelErr: any) {
+      const errMsg = String(modelErr?.message || modelErr);
+      const isCapacityError = 
+        errMsg.includes('503') || 
+        errMsg.includes('high demand') || 
+        errMsg.includes('UNAVAILABLE') ||
+        errMsg.includes('429');
+
+      if (isCapacityError && model !== 'gemini-3.1-flash-lite') {
+        console.warn(`[Gemini Server Stream] ${model} unavailable. Auto-falling back to gemini-3.1-flash-lite...`);
+        stream = await ai.models.generateContentStream({
+          model: 'gemini-3.1-flash-lite',
+          contents,
+          config,
+        });
+      } else {
+        throw modelErr;
+      }
+    }
 
     for await (const chunk of stream) {
       const dataPayload = {
@@ -210,61 +253,70 @@ app.post('/api/gemini/generate-images', async (req, res) => {
   }
 });
 
-// Video Generation endpoint
+// Video Generation endpoint (uses Gemini Interactions API with gemini-omni-1.2-flash)
 app.post('/api/gemini/generate-videos', async (req, res) => {
   try {
-    const { prompt, model = 'veo-3.1-fast-generate-preview', config } = req.body;
+    const { prompt, imageBase64, model = 'gemini-omni-1.2-flash', config = {} } = req.body;
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required for video generation' });
     }
 
     const ai = getGenAI();
-    let operation = await ai.models.generateVideos({
+
+    // Support resolution tiers: 360p (Cheapest Economy - 8 credits/10s), 720p (Standard - 16 credits), 1080p (Cinematic - 32 credits)
+    const targetResolution = config.resolution || '360p';
+    const targetDuration = config.duration || '10s';
+    const targetAspectRatio = config.aspectRatio || '16:9';
+
+    // Prepare inputs: text motion prompt, optionally with starting image frame
+    const inputParts: any[] = [];
+    if (imageBase64) {
+      const cleanBase64 = imageBase64.replace(/^data:image\/[a-zA-Z]+;base64,/, '');
+      inputParts.push({
+        type: 'image',
+        mime_type: 'image/png',
+        data: cleanBase64,
+      });
+    }
+    inputParts.push({
+      type: 'text',
+      text: prompt,
+    });
+
+    const interaction = await ai.interactions.create({
       model,
-      prompt,
-      config: config || {
-        numberOfVideos: 1,
-        resolution: '720p',
-        aspectRatio: '16:9',
+      input: inputParts.length === 1 ? prompt : inputParts,
+      background: false,
+      store: false,
+      stream: false,
+      response_format: {
+        type: 'video',
+        aspect_ratio: targetAspectRatio,
+        duration: targetDuration,
+        resolution: targetResolution,
       },
-    });
+    }, { timeout: 300000 });
 
-    // Poll until operation is complete
-    while (!operation.done) {
-      await new Promise((resolve) => setTimeout(resolve, 5000));
-      operation = await ai.operations.getVideosOperation({ operation });
+    const videoPart = interaction.output_video;
+    if (videoPart && videoPart.data) {
+      const mime = videoPart.mime_type || 'video/mp4';
+      const videoUrl = `data:${mime};base64,${videoPart.data}`;
+      const creditsCost = targetResolution === '360p' ? 8 : (targetResolution === '1080p' ? 32 : 16);
+      return res.json({ videoUrl, prompt, resolution: targetResolution, duration: targetDuration, creditsCost });
     }
 
-    if (operation.error) {
-      throw new Error(String(operation.error.message));
-    }
-
-    const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-    if (!downloadLink) {
-      throw new Error('Video generation completed, but no download link was provided.');
-    }
-
-    const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || '';
-    const videoResponse = await fetch(downloadLink, {
-      method: 'GET',
-      headers: {
-        'x-goog-api-key': apiKey,
-      },
-    });
-
-    if (!videoResponse.ok) {
-      throw new Error(`Failed to download video stream: ${videoResponse.statusText}`);
-    }
-
-    const arrayBuffer = await videoResponse.arrayBuffer();
-    const base64Data = Buffer.from(arrayBuffer).toString('base64');
-    const videoUrl = `data:video/mp4;base64,${base64Data}`;
-
-    res.json({ videoUrl });
+    throw new Error('Video generation completed, but no video output stream was returned.');
   } catch (err: any) {
     console.error('Gemini video generation error:', err);
-    res.status(500).json({
-      error: err.message || 'Video generation failed',
+    const errMsg = String(err?.message || err);
+    const isPaidKeyRequired = errMsg.includes('403') || errMsg.includes('paid') || errMsg.includes('permission');
+    
+    res.status(isPaidKeyRequired ? 403 : 500).json({
+      error: isPaidKeyRequired 
+        ? 'Direct video rendering with Gemini Omni Flash requires a paid API key. You can copy the generated video prompt and use it directly with Runway Gen-3, Sora, Kling, or LTX Studio!'
+        : (err.message || 'Video generation failed'),
+      prompt: req.body?.prompt || '',
+      requiresPaidKey: isPaidKeyRequired,
     });
   }
 });
