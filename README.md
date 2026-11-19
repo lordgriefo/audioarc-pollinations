@@ -12,6 +12,14 @@
 * **No API Key Required**: Enjoy uninhibited prompt generation and storyboard art right away, with optional API key support for elevated throughput.
 * **Multi-Provider Support**: Seamlessly switch between Pollinations, Google Gemini, OpenAI, Ollama (local), LM Studio, and OpenRouter whenever you want.
 
+## 🎬 What's New in v1.4.0
+
+### 📖 Master Production Bible PDF & Shot Log
+- **Comprehensive Production Bible**: Generates a 19+ page master production PDF containing the Director's Treatment, Lookbook aesthetic & creative influences, complete Cast & Character visual continuity bible (with reference portraits, handles, and scene appearances), full source lyrics, formatted Hollywood production screenplay, and the master shot schedule with detailed scene-by-scene prompts.
+- **Shot Log Matrix**: Integrated shot inspection matrix (`ShotLogView`) for auditing cinematic camera moves, color grades, character tags, and timing across all scenes.
+- **One-Click Bundle Export**: Every Project ZIP download now automatically compiles and embeds `master_production_notes.pdf` alongside your shotlists, prompt files, and synced lyrics.
+- **Color Grading Persistence**: Native color grade metadata (`AppliedColorGradeMeta`) tracking across all storyboard scenes with instant clearing or switching.
+
 ## 🎬 What's New in v1.3.0
 
 ### 🎵 Synchronized .lrc Lyric Sheet Exports

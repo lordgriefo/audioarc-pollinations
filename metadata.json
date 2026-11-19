@@ -1,6 +1,6 @@
 {
-  "name": "AudioArc: AI Filmmaking Assistant 9-1-26",
-  "description": "Professional AI Filmmaking Assistant converting lyrics and audio into structured cinematic storyboards and scripts with support for Gemini, OpenAI, Ollama, LM Studio, OpenRouter, and Pollinations.",
+  "name": "AudioArc: AI Filmmaking Assistant (Pollinations Edition)",
+  "description": "Professional AI Filmmaking Assistant converting lyrics and audio into structured cinematic storyboards, animatics, and 19-page Master Production Bible PDFs with support for Pollinations (zero key required), Gemini, OpenAI, Ollama, LM Studio, and OpenRouter.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

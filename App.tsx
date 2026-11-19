@@ -65,6 +65,12 @@ import { AIContrastBoosterModal } from './AIContrastBoosterModal';
 import { WaveformBoundaryEditor } from './WaveformBoundaryEditor';
 import { PWAInstallButton } from './PWAInstallButton';
 import { BeatSceneSegmentationModal } from './BeatSceneSegmentationModal';
+import { buildMasterProductionNotesPDF, exportMasterProductionNotesPDF } from './masterProductionNotesPdf';
+import { ShotLogView } from './ShotLogView';
+import { AppliedColorGradeMeta } from './colorGradingEngine';
+import { 
+  generateClientSideBeats 
+} from './clientAudioIntelligence';
 interface ErrorBoundaryProps {
   children: React.ReactNode;
 }
@@ -138,6 +144,7 @@ export interface ScenePrompt {
   lipSyncPrompt?: string;
   isVoiceoverEnabled?: boolean;
   voiceoverText?: string;
+  appliedColorGrade?: AppliedColorGradeMeta;
 }
 
 interface HistoryItem {
@@ -453,6 +460,113 @@ const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
+const getNormalizedAudioMimeType = (file: File): string => {
+  const raw = (file.type || '').toLowerCase().trim();
+  const map: Record<string, string> = {
+    'audio/mp3': 'audio/mpeg',
+    'audio/x-mpeg': 'audio/mpeg',
+    'audio/x-mp3': 'audio/mpeg',
+    'audio/x-wav': 'audio/wav',
+    'audio/wave': 'audio/wav',
+    'audio/x-pn-wav': 'audio/wav',
+    'audio/x-m4a': 'audio/mp4',
+    'audio/m4a': 'audio/mp4',
+    'audio/x-flac': 'audio/flac',
+    'audio/x-aac': 'audio/aac',
+  };
+  if (raw && map[raw]) return map[raw];
+  if (raw && raw.startsWith('audio/')) return raw;
+
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  const extMap: Record<string, string> = {
+    mp3: 'audio/mpeg',
+    wav: 'audio/wav',
+    m4a: 'audio/mp4',
+    mp4: 'audio/mp4',
+    aac: 'audio/aac',
+    ogg: 'audio/ogg',
+    oga: 'audio/ogg',
+    flac: 'audio/flac',
+    webm: 'audio/webm',
+  };
+  return extMap[ext] || 'audio/mpeg';
+};
+
+const encodeMonoWavBase64 = (audioBuffer: AudioBuffer, targetSampleRate: number): string => {
+  const ratio = audioBuffer.sampleRate / targetSampleRate;
+  const outputLength = Math.max(1, Math.floor(audioBuffer.length / ratio));
+  const numChannels = audioBuffer.numberOfChannels;
+  const channels = Array.from({ length: numChannels }, (_, i) => audioBuffer.getChannelData(i));
+
+  const dataSize = outputLength * 2;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+
+  const writeStr = (offset: number, str: string) => {
+    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+  };
+
+  writeStr(0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeStr(8, 'WAVE');
+  writeStr(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, 1, true); // mono
+  view.setUint32(24, targetSampleRate, true);
+  view.setUint32(28, targetSampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeStr(36, 'data');
+  view.setUint32(40, dataSize, true);
+
+  let offset = 44;
+  for (let i = 0; i < outputLength; i++) {
+    const srcIdx = Math.min(audioBuffer.length - 1, Math.floor(i * ratio));
+    let sample = 0;
+    for (let c = 0; c < numChannels; c++) {
+      sample += channels[c][srcIdx];
+    }
+    sample = sample / numChannels;
+    const clamped = Math.max(-1, Math.min(1, sample));
+    view.setInt16(offset, clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff, true);
+    offset += 2;
+  }
+
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+};
+
+const prepareAudioForGemini = async (file: File): Promise<{ base64: string; mimeType: string; decodedDuration?: number }> => {
+  const normalizedMime = getNormalizedAudioMimeType(file);
+  // Compress large files (> 5MB) in-browser to mono 16kHz (or 8kHz for long tracks) WAV to keep requests fast and reliable
+  if (file.size > 5 * 1024 * 1024) {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx = new AudioCtx();
+      try {
+        const arrayBuf = await file.arrayBuffer();
+        const decoded = await ctx.decodeAudioData(arrayBuf);
+        const targetRate = decoded.duration > 360 ? 8000 : 16000;
+        const wavBase64 = encodeMonoWavBase64(decoded, targetRate);
+        return { base64: wavBase64, mimeType: 'audio/wav', decodedDuration: decoded.duration };
+      } finally {
+        ctx.close().catch(() => {});
+      }
+    } catch (e) {
+      console.warn('In-browser audio compression skipped, using original file:', e);
+    }
+  }
+
+  const dataUrl = await fileToBase64(file);
+  return { base64: dataUrl.split(',')[1] || '', mimeType: normalizedMime };
+};
+
 const exportStoryboardAsPDF = async (filename = 'storyboard.pdf') => {
   const storyboardElement = document.getElementById('storyboard-container');
   if (!storyboardElement) return;
@@ -591,8 +705,8 @@ export const App: React.FC = () => {
   const [currentPlaybackIndex, setCurrentPlaybackIndex] = useState<number>(0);
   const playbackInterval = useRef<number | null>(null);
 
-  // Multi-Track Storyboard & Animatic Preview State
-  const [storyboardViewMode, setStoryboardViewMode] = useState<'cards' | 'multitrack'>('cards');
+  // Multi-Track Storyboard, Shot Log & Animatic Preview State
+  const [storyboardViewMode, setStoryboardViewMode] = useState<'cards' | 'multitrack' | 'shotlog'>('cards');
   const [multiTrackProject, setMultiTrackProject] = useState<MultiTrackProject | null>(null);
   const [animaticPreviewMode, setAnimaticPreviewMode] = useState<'docked' | 'floating' | 'fullscreen'>('docked');
   const [showFloatingAnimatic, setShowFloatingAnimatic] = useState<boolean>(false);
@@ -731,7 +845,7 @@ export const App: React.FC = () => {
       setApiKeyStatus(fallback ? 'detected' : 'not_found');
     }
   }, []);
-  const [geminiMainModel, setGeminiMainModel] = useState<string>('gemini-3.8-flash');
+  const [geminiMainModel, setGeminiMainModel] = useState<string>('gemini-4-hydrogen');
   const [geminiUtilityModel, setGeminiUtilityModel] = useState<string>('gemini-3.1-flash-lite');
   // Image Generation
   const [imageProvider, setImageProvider] = useState<'google' | 'openrouter' | 'pollinations'>(() => {
@@ -893,7 +1007,7 @@ export const App: React.FC = () => {
     if (savedGemini) { 
         const c = JSON.parse(savedGemini); 
         const main = c.mainModel;
-        setGeminiMainModel(AI_MODELS.main.includes(main) ? main : 'gemini-3.8-flash'); 
+        setGeminiMainModel(AI_MODELS.main.includes(main) ? main : 'gemini-4-hydrogen'); 
         const utility = c.utilityModel;
         setGeminiUtilityModel(AI_MODELS.utility.includes(utility) ? utility : 'gemini-3.1-flash-lite'); 
         setImageProvider(c.imageProvider || 'google');
@@ -1836,81 +1950,174 @@ IMPORTANT: Respond with ONLY a valid, complete JSON array of scene objects. Do n
 
 
   const handleAudioIntelligence = async () => {
-    if (provider !== 'gemini') {
-        setErrorMessage({
-            title: "Gemini Exclusive Feature",
-            body: "Audio Intelligence requires the advanced multimodal capabilities of Gemini. Please switch your provider to 'Gemini' in Settings to use this feature.",
-            action: () => {
-                setShowSettings(true);
-                setSettingsTab('config');
-            }
-        });
-        return;
-    }
-    
-    if (!audioFile || !audioUrl || audioDuration === 0) {
-      setErrorMessage("Please upload an audio file and wait for it to load before analyzing.");
+    if (!audioFile || !audioUrl) {
+      setErrorMessage("Please upload an audio file before running Audio Intelligence.");
       return;
     }
 
     setLoading(true);
     setStoryboard(null);
     stopRef.current = false;
-    setProgress('Listening to the track...');
+    setProgress('Preparing audio track...');
     
     try {
-        const base64 = (await fileToBase64(audioFile)).split(',')[1];
+        const preparedAudio = await prepareAudioForGemini(audioFile);
+        const base64 = preparedAudio.base64;
+        const audioMimeType = preparedAudio.mimeType;
+
+        let resolvedDuration = audioDuration || preparedAudio.decodedDuration || 0;
+        if (resolvedDuration <= 0) {
+          try {
+            const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+            const ctx = new AudioCtx();
+            try {
+              const decoded = await ctx.decodeAudioData(await audioFile.arrayBuffer());
+              resolvedDuration = decoded.duration;
+              if (resolvedDuration > 0) setAudioDuration(resolvedDuration);
+            } finally {
+              ctx.close().catch(() => {});
+            }
+          } catch {}
+        }
+        if (resolvedDuration <= 0) {
+          throw new Error("Audio track duration is still loading or could not be read. Please wait a moment and try again.");
+        }
+
         const style = VISUAL_STYLES.find(s => s.id === selectedStyleId) || VISUAL_STYLES[0];
         const influenceList = getInfluenceDescriptions(selectedInfluences, customInfluences);
         const referenceContext = visualRefs.length > 0 ? `CASTING DIRECTIVE:\nMain Characters:\n${visualRefs.map((r, i) => `CHARACTER ${i+1}: "${r.name}" - Appearance: ${r.description}`).join('\n')}\n` : "";
 
-        const exactDuration = Math.floor(audioDuration);
+        const exactDuration = Math.max(4, Math.floor(resolvedDuration));
         
         // --- STEP 1: Audio Breakdown ---
-        setProgress('Analyzing rhythm and timing...');
+        setProgress('Listening and analyzing rhythm & lyrics...');
         const breakdownPrompt = {
             parts: [
-                { inlineData: { mimeType: audioFile.type, data: base64 } },
-                { text: `Analyze this audio track, which is exactly ${exactDuration} seconds long. Break it down into timed scenes.` }
+                { inlineData: { mimeType: audioMimeType, data: base64 } },
+                { text: `Listen carefully to this audio track (total duration: ${exactDuration} seconds). Transcribe the vocals/lyrics and divide the full ${exactDuration}-second track into timed music video scenes from start to finish.` }
             ]
         };
         const breakdownSystemInstruction = `You are a music video script supervisor. Listen to this audio and break it down into timed scenes.
         
-GOAL: The sum of all 'duration' values MUST equal exactly ${exactDuration} seconds. This is critical.
-CONSTRAINT: Individual scene durations must be between 4 and 10 seconds. Break longer lyrical or instrumental passages into multiple shots.
+GOAL: The sum of all 'duration' values MUST equal approximately ${exactDuration} seconds. Never return an empty array.
+CONSTRAINT: Individual scene durations must be between 4 and 10 seconds. Break longer lyrical or instrumental passages into multiple shots. If a section is instrumental, label lyric as "[Instrumental]".
 
 TASKS:
 1. Transcribe lyrics for each scene.
 2. Identify instrumental sections (Intros, Outros, Breaks).
-3. Assign a logical duration to each scene to meet the total duration.
-4. Group scenes by musical sections (e.g., Verse 1, Chorus, Bridge).
+3. Assign a logical duration (number of seconds) to each scene to span the full ${exactDuration} seconds.
+4. Group scenes by musical sections (e.g., Intro, Verse 1, Chorus, Bridge, Outro).
 
-OUTPUT: Return ONLY a valid JSON Array of objects with keys: "lyric", "duration", and "groupName".`;
+OUTPUT: Return ONLY a valid JSON Array of objects with keys: "lyric" (string), "duration" (number), and "groupName" (string).`;
 
-        const breakdownResult = await generateContentServer({
-            model: geminiUtilityModel,
-            contents: breakdownPrompt,
-            config: {
-                systemInstruction: breakdownSystemInstruction,
-                responseMimeType: 'application/json',
-                responseSchema: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            lyric: { type: Type.STRING },
-                            duration: { type: Type.NUMBER },
-                            groupName: { type: Type.STRING }
-                        },
-                        required: ["lyric", "duration"]
-                    }
-                }
+        const breakdownSchema = {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    lyric: { type: Type.STRING },
+                    duration: { type: Type.NUMBER },
+                    groupName: { type: Type.STRING }
+                },
+                required: ["lyric", "duration"]
             }
-        });
-        
-        if (stopRef.current) return;
-        updateUsage(breakdownResult);
-        const beats: Beat[] = normalizeKeys(JSON.parse(cleanJSON(breakdownResult.text || '[]')));
+        };
+
+        const runBreakdownCall = async (modelToUse: string, useSchema: boolean) => {
+          return await generateContentServer({
+              model: modelToUse,
+              contents: breakdownPrompt,
+              config: useSchema
+                ? {
+                    systemInstruction: breakdownSystemInstruction,
+                    responseMimeType: 'application/json',
+                    responseSchema: breakdownSchema,
+                  }
+                : {
+                    systemInstruction: breakdownSystemInstruction,
+                    responseMimeType: 'application/json',
+                  }
+          });
+        };
+
+        let beats: Beat[] = [];
+        if (provider === 'gemini') {
+          let breakdownResult = await runBreakdownCall(geminiUtilityModel || 'gemini-3.1-flash-lite', true);
+          if (stopRef.current) return;
+          updateUsage(breakdownResult);
+
+          let parsedRaw: any = null;
+          try {
+            parsedRaw = JSON.parse(cleanJSON(breakdownResult.text || '[]'));
+          } catch {
+            parsedRaw = [];
+          }
+          beats = Array.isArray(parsedRaw) ? normalizeKeys(parsedRaw) : [];
+
+          // Retry with flash-lite without strict schema if first call returned empty array
+          if (!beats || beats.length === 0) {
+            setProgress('Retrying audio breakdown...');
+            breakdownResult = await runBreakdownCall('gemini-3.1-flash-lite', false);
+            if (stopRef.current) return;
+            updateUsage(breakdownResult);
+            try {
+              const retryParsed = JSON.parse(cleanJSON(breakdownResult.text || '[]'));
+              beats = Array.isArray(retryParsed) ? normalizeKeys(retryParsed) : [];
+            } catch {
+              beats = [];
+            }
+          }
+        } else {
+          // Client-side Web Audio breakdown (100% free, browser-native, works with Pollinations)
+          setProgress('Computing Web Audio rhythm, intensity profile & beat peaks...');
+          let intensityToUse = audioIntensityData;
+          let dropsToUse = detectedBeatDrops;
+
+          if (!intensityToUse && audioFile) {
+            try {
+              const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+              const ctx = new AudioCtx();
+              try {
+                const audioBuffer = await ctx.decodeAudioData(await audioFile.arrayBuffer());
+                intensityToUse = extractIntensityFromAudioBuffer(audioBuffer);
+                setAudioIntensityData(intensityToUse);
+                dropsToUse = detectAudioPeakDrops(intensityToUse, audioBuffer.duration, {
+                  sensitivity: snapSensitivity,
+                  minDistanceSeconds: snapMinSceneDuration
+                });
+                setDetectedBeatDrops(dropsToUse);
+              } finally {
+                ctx.close().catch(() => {});
+              }
+            } catch (e) {
+              console.warn("Client-side audio analysis fallback", e);
+            }
+          }
+
+          const clientBeats = generateClientSideBeats(
+            exactDuration,
+            intensityToUse,
+            dropsToUse,
+            lyrics,
+            {
+              minSceneDuration: 4.0,
+              maxSceneDuration: 10.0,
+              targetSceneDuration: 6.0,
+              sensitivity: snapSensitivity
+            }
+          );
+
+          beats = clientBeats.map(cb => ({
+            lyric: cb.lyric,
+            beat: cb.beat,
+            duration: cb.duration,
+            groupName: cb.groupName
+          }));
+        }
+
+        if (!beats || beats.length === 0) {
+          throw new Error("Could not extract scenes from this audio track. Try trimming or using a shorter MP3/WAV track, or paste lyrics manually.");
+        }
         
         // Normalize durations to match exactDuration
         const currentTotal = beats.reduce((acc, b) => acc + (b.duration || 0), 0);
@@ -1970,29 +2177,37 @@ OUTPUT: Return ONLY a valid JSON Array of objects for THIS BATCH.
 Keys: "lyric", "description", "imagePrompt", "videoPrompts", "soraPrompt", "groupName".`;
             
             try {
-                const batchResult = await generateContentServer({
-                    model: geminiMainModel,
-                    contents: batchDetailingPrompt,
-                    config: {
-                        responseMimeType: 'application/json',
-                        responseSchema: {
-                            type: Type.ARRAY, items: {
-                                type: Type.OBJECT, properties: {
-                                    lyric: { type: Type.STRING },
-                                    description: { type: Type.STRING },
-                                    imagePrompt: { type: Type.STRING },
-                                    videoPrompts: { type: Type.ARRAY, items: { type: Type.STRING } },
-                                    soraPrompt: { type: Type.STRING },
-                                    groupName: { type: Type.STRING }
-                                }, required: ["lyric", "description", "imagePrompt", "videoPrompts", "soraPrompt"]
+                let batchJsonText = '';
+                if (provider === 'gemini') {
+                    const batchResult = await generateContentServer({
+                        model: geminiMainModel,
+                        contents: batchDetailingPrompt,
+                        config: {
+                            responseMimeType: 'application/json',
+                            responseSchema: {
+                                type: Type.ARRAY, items: {
+                                    type: Type.OBJECT, properties: {
+                                        lyric: { type: Type.STRING },
+                                        description: { type: Type.STRING },
+                                        imagePrompt: { type: Type.STRING },
+                                        videoPrompts: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                        soraPrompt: { type: Type.STRING },
+                                        groupName: { type: Type.STRING }
+                                    }, required: ["lyric", "description", "imagePrompt", "videoPrompts", "soraPrompt"]
+                                }
                             }
                         }
-                    }
-                });
+                    });
+
+                    if (stopRef.current) return;
+                    updateUsage(batchResult);
+                    batchJsonText = batchResult.text || '[]';
+                } else {
+                    batchJsonText = await performProviderRequest(batchDetailingPrompt, true);
+                }
 
                 if (stopRef.current) return;
-                updateUsage(batchResult);
-                const batchData: any[] = normalizeKeys(JSON.parse(cleanJSON(batchResult.text || '[]')));
+                const batchData: any[] = normalizeKeys(JSON.parse(cleanJSON(batchJsonText || '[]')));
                 
                 const processedBatch = batchData.map((detail, index) => {
                     const originalBeat = batch[index];
@@ -3273,7 +3488,7 @@ One-sentence scene summary:`;
     setConnectionError(null);
     try {
       if (providerToTest === 'gemini') {
-        await pingGeminiServer(geminiUtilityModel || geminiMainModel || 'gemini-3.8-flash');
+        await pingGeminiServer(geminiUtilityModel || geminiMainModel || 'gemini-4-hydrogen');
         setApiKeyStatus('detected');
       } else if (providerToTest === 'openai') {
         if (!openAIKey.trim()) throw new Error("OpenAI API Key has not been entered.");
@@ -3784,7 +3999,7 @@ Note: "category" must be one of: "lighting", "camera", "color", "motion", "aesth
           reader.onerror = reject;
           reader.readAsDataURL(blob);
         });
-        mimeType = blob.type || 'image/jpeg';
+        mimeType = 'image/jpeg';
       } else if (imageProvider === 'openrouter') {
         if (!openRouterKey) throw new Error("OpenRouter API Key is required for image generation.");
         const response = await fetch(`${openRouterUrl.trim().replace(/\/$/, '')}/images/generations`, {
@@ -4785,6 +5000,46 @@ Output ONLY valid JSON with keys:
     await exportStoryboardAsPDF(filename);
   };
 
+  const handleExportMasterProductionNotesPDF = async () => {
+    const hasAnyContent =
+      Boolean(storyboard && storyboard.length > 0) ||
+      visualRefs.length > 0 ||
+      Boolean(lyrics.trim()) ||
+      Boolean(narrative.trim()) ||
+      selectedInfluences.length > 0;
+
+    if (!hasAnyContent) {
+      setErrorMessage("Add lyrics, characters, visual styles, or a storyboard first to export Master Production Notes.");
+      return;
+    }
+
+    try {
+      setNotification("Compiling Master Production Notes PDF...");
+      const filename = getExportFilename('master_production_notes', 'pdf');
+      await exportMasterProductionNotesPDF(
+        {
+          projectName,
+          narrative,
+          lyrics,
+          audioFileName,
+          audioDuration,
+          selectedStyleId,
+          selectedInfluences,
+          customInfluences,
+          visualRefs,
+          storyboard,
+        },
+        filename
+      );
+      setNotification("Master Production Notes PDF downloaded!");
+      setTimeout(() => setNotification(null), 3500);
+    } catch (e: any) {
+      console.error("Master Production Notes PDF export failed:", e);
+      setNotification(null);
+      setErrorMessage(`Failed to generate Master Production Notes PDF: ${e?.message || 'Unknown error'}`);
+    }
+  };
+
   const handleExport = async (type: 'json' | 'txt' | 'image_txt' | 'video_txt' | 'image_csv' | 'shotlist_csv' | 'zip' | 'sora_txt' | 'comfy_image' | 'comfy_video' | 'screenplay' | 'lrc' | 'wunderbar' | 'google_flow' | 'google_flow_apps_script') => {
       if (!storyboard && !['json', 'lrc', 'wunderbar', 'google_flow', 'google_flow_apps_script'].includes(type)) return setErrorMessage("No storyboard to export.");
       if (type === 'lrc' && !storyboard && (!lyrics || !lyrics.trim())) return setErrorMessage("Please enter lyrics or create a storyboard first to export an .lrc lyric sheet.");
@@ -5011,6 +5266,25 @@ Output ONLY valid JSON with keys:
         zip.file('google_flow_script.txt', getGoogleFlowScript());
         zip.file('google_flow_automation.js', getGoogleAppsScriptCode());
 
+        // Add Master Production Notes PDF
+        try {
+            const notesPdf = await buildMasterProductionNotesPDF({
+                projectName,
+                narrative,
+                lyrics,
+                audioFileName,
+                audioDuration,
+                selectedStyleId,
+                selectedInfluences,
+                customInfluences,
+                visualRefs,
+                storyboard,
+            });
+            zip.file('master_production_notes.pdf', notesPdf.output('arraybuffer'));
+        } catch (pdfErr) {
+            console.warn('Skipped Master Production Notes PDF inside ZIP:', pdfErr);
+        }
+
         // Add images
         const imgFolder = zip.folder("images");
         storyboard?.forEach((scene) => {
@@ -5121,7 +5395,7 @@ Output ONLY valid JSON with keys:
       console.log("Storyboard set:", data.storyboard);
 
       setProvider(data.provider || 'gemini');
-      setGeminiMainModel(AI_MODELS.main.includes(data.geminiMainModel) ? data.geminiMainModel : 'gemini-3.8-flash');
+      setGeminiMainModel(AI_MODELS.main.includes(data.geminiMainModel) ? data.geminiMainModel : 'gemini-4-hydrogen');
       setGeminiUtilityModel(AI_MODELS.utility.includes(data.geminiUtilityModel) ? data.geminiUtilityModel : 'gemini-3.1-flash-lite');
       setImageProvider(data.imageProvider || 'google');
       setGeminiImageModel(AI_MODELS.image.gemini.includes(data.geminiImageModel) ? data.geminiImageModel : 'gemini-3.1-flash-image');
@@ -6928,7 +7202,7 @@ The old city. The weeping wall. Let's all go and remember.
                                         <span>Storyboard</span>
                                     </h2> 
                                     
-                                    {/* View Mode Switcher: Cards vs Multi-Track Studio */}
+                                    {/* View Mode Switcher: Cards vs Shot Log vs Multi-Track Studio */}
                                     <div className="flex items-center bg-black/60 p-0.5 rounded-xl border border-white/15 gap-0.5 shadow-inner">
                                         <button
                                             onClick={() => setStoryboardViewMode('cards')}
@@ -6937,6 +7211,17 @@ The old city. The weeping wall. Let's all go and remember.
                                         >
                                             <LayoutGrid size={13} />
                                             <span>Cards</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setStoryboardViewMode('shotlog')}
+                                            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${storyboardViewMode === 'shotlog' ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
+                                            title="Shot Log: Audit generated image references alongside applied color grades for aesthetic consistency"
+                                        >
+                                            <Palette size={13} className={storyboardViewMode === 'shotlog' ? 'text-amber-100' : 'text-amber-400'} />
+                                            <span>Shot Log</span>
+                                            <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono border ${storyboardViewMode === 'shotlog' ? 'bg-black/25 text-amber-100 border-amber-200/30' : 'bg-amber-500/15 text-amber-300 border-amber-500/30'}`}>
+                                                {storyboard.filter(s => s.generatedImage).length}/{storyboard.length}
+                                            </span>
                                         </button>
                                         <button
                                             onClick={() => {
@@ -7152,6 +7437,36 @@ The old city. The weeping wall. Let's all go and remember.
                                 onNotification={(msg) => setNotification(msg)}
                                 previewMode={animaticPreviewMode}
                                 onPreviewModeChange={setAnimaticPreviewMode}
+                            />
+                        ) : storyboardViewMode === 'shotlog' ? (
+                            <ShotLogView
+                                storyboard={storyboard}
+                                visualRefs={visualRefs}
+                                selectedStyle={selectedStyle}
+                                projectName={projectName}
+                                generatingImageIndex={(() => {
+                                    const activeKey = Object.keys(imageGenerationLoading).find(k => imageGenerationLoading[Number(k)]);
+                                    return activeKey !== undefined ? Number(activeKey) : null;
+                                })()}
+                                onUpdateStoryboard={handleApplyColorGradeUpdate}
+                                onOpenColorGradeForScene={(idx) => {
+                                    setColorGradeFocusSceneIndex(idx);
+                                    setShowColorGradeModal(true);
+                                }}
+                                onGenerateImage={(idx) => {
+                                    const target = storyboard[idx];
+                                    if (target) {
+                                        handleGenerateImage(idx, target.imagePrompt);
+                                    }
+                                }}
+                                onJumpToSceneCard={(idx) => {
+                                    setStoryboardViewMode('cards');
+                                    setTimeout(() => jumpToScene(idx), 60);
+                                }}
+                                onNotification={(msg) => {
+                                    setNotification(msg);
+                                    setTimeout(() => setNotification(null), 3500);
+                                }}
                             />
                         ) : (
                             <>
@@ -8132,12 +8447,12 @@ The old city. The weeping wall. Let's all go and remember.
                             <div className="bg-[#1a1a1a] p-4 rounded-lg border border-white/10">
                                 <h4 className="font-bold text-gray-200 mb-3 text-sm flex items-center gap-2"><Terminal size={14}/> Prompt Generation AI</h4>
                                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-4">
-                                    <button onClick={()=>{setProvider('gemini'); try{localStorage.setItem('audioarc_selected_provider','gemini')}catch{}}} className={`px-2 py-2 rounded-lg border text-[10px] font-bold transition-colors flex items-center justify-center gap-1 ${provider === 'gemini' ? 'bg-blue-900/40 border-blue-500/50 text-blue-300' : 'border-white/10 bg-black/20 hover:bg-white/10'}`}><Sparkles size={12}/> Gemini</button>
-                                    <button onClick={()=>{setProvider('openai'); try{localStorage.setItem('audioarc_selected_provider','openai')}catch{}}} className={`px-2 py-2 rounded-lg border text-[10px] font-bold transition-colors flex items-center justify-center gap-1 ${provider === 'openai' ? 'bg-emerald-900/40 border-emerald-500/50 text-emerald-300' : 'border-white/10 bg-black/20 hover:bg-white/10'}`}><Bot size={12}/> OpenAI</button>
-                                    <button onClick={()=>{setProvider('ollama'); try{localStorage.setItem('audioarc_selected_provider','ollama')}catch{}}} className={`px-2 py-2 rounded-lg border text-[10px] font-bold transition-colors flex items-center justify-center gap-1 ${provider === 'ollama' ? 'bg-orange-900/40 border-orange-500/50 text-orange-300' : 'border-white/10 bg-black/20 hover:bg-white/10'}`}><MonitorIcon size={12}/> Ollama</button>
-                                    <button onClick={()=>{setProvider('lmstudio'); try{localStorage.setItem('audioarc_selected_provider','lmstudio')}catch{}}} className={`px-2 py-2 rounded-lg border text-[10px] font-bold transition-colors flex items-center justify-center gap-1 ${provider === 'lmstudio' ? 'bg-purple-900/40 border-purple-500/50 text-purple-300' : 'border-white/10 bg-black/20 hover:bg-white/10'}`}><Cpu size={12}/> LM Studio</button>
-                                    <button onClick={()=>{setProvider('openrouter'); try{localStorage.setItem('audioarc_selected_provider','openrouter')}catch{}}} className={`px-2 py-2 rounded-lg border text-[10px] font-bold transition-colors flex items-center justify-center gap-1 ${provider === 'openrouter' ? 'bg-green-900/40 border-green-500/50 text-green-300' : 'border-white/10 bg-black/20 hover:bg-white/10'}`}><Cloud size={12}/> OpenRouter</button>
-                                    <button onClick={()=>{setProvider('pollinations'); try{localStorage.setItem('audioarc_selected_provider','pollinations')}catch{}}} className={`px-2 py-2 rounded-lg border text-[10px] font-bold transition-colors flex items-center justify-center gap-1 ${provider === 'pollinations' ? 'bg-pink-900/40 border-pink-500/50 text-pink-300' : 'border-white/10 bg-black/20 hover:bg-white/10'}`}><Zap size={12}/> Pollinations</button>
+                                    <button onClick={()=>setProvider('gemini')} className={`px-2 py-2 rounded-lg border text-[10px] font-bold transition-colors flex items-center justify-center gap-1 ${provider === 'gemini' ? 'bg-blue-900/40 border-blue-500/50 text-blue-300' : 'border-white/10 bg-black/20 hover:bg-white/10'}`}><Sparkles size={12}/> Gemini</button>
+                                    <button onClick={()=>setProvider('openai')} className={`px-2 py-2 rounded-lg border text-[10px] font-bold transition-colors flex items-center justify-center gap-1 ${provider === 'openai' ? 'bg-emerald-900/40 border-emerald-500/50 text-emerald-300' : 'border-white/10 bg-black/20 hover:bg-white/10'}`}><Bot size={12}/> OpenAI</button>
+                                    <button onClick={()=>setProvider('ollama')} className={`px-2 py-2 rounded-lg border text-[10px] font-bold transition-colors flex items-center justify-center gap-1 ${provider === 'ollama' ? 'bg-orange-900/40 border-orange-500/50 text-orange-300' : 'border-white/10 bg-black/20 hover:bg-white/10'}`}><MonitorIcon size={12}/> Ollama</button>
+                                    <button onClick={()=>setProvider('lmstudio')} className={`px-2 py-2 rounded-lg border text-[10px] font-bold transition-colors flex items-center justify-center gap-1 ${provider === 'lmstudio' ? 'bg-purple-900/40 border-purple-500/50 text-purple-300' : 'border-white/10 bg-black/20 hover:bg-white/10'}`}><Cpu size={12}/> LM Studio</button>
+                                    <button onClick={()=>setProvider('openrouter')} className={`px-2 py-2 rounded-lg border text-[10px] font-bold transition-colors flex items-center justify-center gap-1 ${provider === 'openrouter' ? 'bg-green-900/40 border-green-500/50 text-green-300' : 'border-white/10 bg-black/20 hover:bg-white/10'}`}><Cloud size={12}/> OpenRouter</button>
+                                    <button onClick={()=>setProvider('pollinations')} className={`px-2 py-2 rounded-lg border text-[10px] font-bold transition-colors flex items-center justify-center gap-1 ${provider === 'pollinations' ? 'bg-pink-900/40 border-pink-500/50 text-pink-300' : 'border-white/10 bg-black/20 hover:bg-white/10'}`}><Zap size={12}/> Pollinations</button>
                                 </div>
                                 
                                 {provider === 'gemini' && (
@@ -8186,7 +8501,7 @@ The old city. The weeping wall. Let's all go and remember.
                                         <div className="flex-1">
                                             <div className="flex justify-between items-center mb-1">
                                                 <label className="text-xs font-bold text-gray-400">Main Model (for Storyboard & Script)</label>
-                                                <span className="text-[10px] text-blue-400 font-semibold">Gemini 3 Series</span>
+                                                <span className="text-[10px] text-blue-400 font-semibold">Gemini 4 &amp; 3.1 Series</span>
                                             </div>
                                             <select value={geminiMainModel} onChange={e=>setGeminiMainModel(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm outline-none focus:border-white/30 transition-colors">
                                                 {AI_MODELS.main.map(m => (
@@ -8206,7 +8521,7 @@ The old city. The weeping wall. Let's all go and remember.
                                             ))}
                                         </select>
                                         <p className="text-[11px] text-gray-500 mt-1.5">
-                                            💡 Use <strong>gemini-3.1-flash-lite</strong> for rapid, lowest-cost background analysis, or <strong>gemini-3.8-flash</strong> for standard speed.
+                                            💡 Use <strong>gemini-3.1-flash-lite</strong> for rapid, free-tier friendly audio & background analysis, or <strong>gemini-4-hydrogen</strong> for balanced speed.
                                         </p>
                                     </div>
                                     <div className="flex items-center justify-between pt-2">
@@ -10705,6 +11020,7 @@ The old city. The weeping wall. Let's all go and remember.
 
                   <div className="p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5 max-h-[50vh] overflow-y-auto custom-scrollbar">
                       <button onClick={()=>handleExportProjectZip()} className="export-btn"><FileArchive size={24} className="text-yellow-400"/> Project ZIP</button>
+                      <button onClick={()=>{setShowExport(false); handleExportMasterProductionNotesPDF();}} className="export-btn border-indigo-500/40 bg-indigo-950/25 hover:bg-indigo-900/40 text-indigo-200 font-bold" title="Export complete Master Production Notes PDF including character descriptions, visual style references, full script/lyrics, and detailed scene list"><BookOpen size={24} className="text-indigo-400"/> Master Notes PDF</button>
                       <button onClick={()=>{setShowExport(false); setShowGoogleFlowModal(true);}} className="export-btn border-blue-500/40 bg-blue-950/20 hover:bg-blue-900/40 text-blue-300 font-bold" title="Open Google Flow Studio Bridge with macro camera commands & Google Sheets Apps Script automation"><Sparkles size={24} className="text-blue-400"/> Google Flow</button>
                       <button onClick={()=>handleExport('google_flow')} className="export-btn" title="Download Google Flow formatted production script (.txt)"><FileText size={24} className="text-teal-400"/> Flow Script</button>
                       <button onClick={()=>handleExport('google_flow_apps_script')} className="export-btn" title="Download Google Apps Script for automated batch running in Google Sheets (.js)"><Terminal size={24} className="text-amber-400"/> Flow Apps Script</button>

@@ -71,36 +71,101 @@ app.post('/api/gemini/ping', async (req, res) => {
   }
 });
 
+// Helper: extract clean, readable error text from SDK errors
+function formatGeminiError(err: any, fallbackMsg: string): string {
+  const raw = String(err?.message || err || fallbackMsg);
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed?.error?.message) {
+      return `${parsed.error.message}${parsed.error.status ? ` (${parsed.error.status})` : ''}`;
+    }
+  } catch {}
+  return raw;
+}
+
+// Helper: if inlineData exceeds ~10MB base64, upload via Gemini Files API to avoid 20MB inline payload limits
+async function normalizeContentsForGemini(ai: GoogleGenAI, contents: any): Promise<{ contents: any; uploadedFileNames: string[] }> {
+  const uploadedFileNames: string[] = [];
+  if (!contents || !Array.isArray(contents.parts)) {
+    return { contents, uploadedFileNames };
+  }
+
+  const INLINE_THRESHOLD = 10 * 1024 * 1024; // ~7.5MB binary / ~10MB base64
+  const nextParts = [];
+
+  for (const part of contents.parts) {
+    if (part?.inlineData?.data && typeof part.inlineData.data === 'string' && part.inlineData.data.length > INLINE_THRESHOLD) {
+      const mimeType = part.inlineData.mimeType || 'audio/mpeg';
+      const buffer = Buffer.from(part.inlineData.data, 'base64');
+      const blob = new Blob([buffer], { type: mimeType });
+      const uploaded = await ai.files.upload({
+        file: blob,
+        config: { mimeType },
+      });
+      if (uploaded?.name) {
+        uploadedFileNames.push(uploaded.name);
+      }
+      if (uploaded?.uri) {
+        nextParts.push({
+          fileData: {
+            fileUri: uploaded.uri,
+            mimeType: uploaded.mimeType || mimeType,
+          },
+        });
+        continue;
+      }
+    }
+    nextParts.push(part);
+  }
+
+  return {
+    contents: { ...contents, parts: nextParts },
+    uploadedFileNames,
+  };
+}
+
+function shouldFallbackModel(err: any): boolean {
+  const errMsg = String(err?.message || err || '');
+  return (
+    errMsg.includes('503') ||
+    errMsg.includes('high demand') ||
+    errMsg.includes('UNAVAILABLE') ||
+    errMsg.includes('429') ||
+    errMsg.includes('RESOURCE_EXHAUSTED') ||
+    errMsg.includes('404') ||
+    errMsg.includes('NOT_FOUND')
+  );
+}
+
 // Generate Content endpoint (handles text, structured JSON, multimodal inputs)
 app.post('/api/gemini/generate-content', async (req, res) => {
+  const ai = getGenAI();
+  let uploadedFileNames: string[] = [];
+
   try {
     const { model = 'gemini-3.1-flash-lite', contents, config } = req.body;
     if (!contents) {
       return res.status(400).json({ error: 'Missing required "contents" in request body' });
     }
 
-    const ai = getGenAI();
+    const normalized = await normalizeContentsForGemini(ai, contents);
+    const preparedContents = normalized.contents;
+    uploadedFileNames = normalized.uploadedFileNames;
+
     let response;
     try {
       response = await ai.models.generateContent({
         model,
-        contents,
+        contents: preparedContents,
         config,
       });
     } catch (modelErr: any) {
-      const errMsg = String(modelErr?.message || modelErr);
-      const isCapacityError = 
-        errMsg.includes('503') || 
-        errMsg.includes('high demand') || 
-        errMsg.includes('UNAVAILABLE') ||
-        errMsg.includes('429') ||
-        errMsg.includes('RESOURCE_EXHAUSTED');
-
-      if (isCapacityError && model !== 'gemini-3.1-flash-lite') {
-        console.warn(`[Gemini Server] ${model} unavailable due to capacity (${errMsg.substring(0, 100)}). Auto-falling back to gemini-3.1-flash-lite...`);
+      if (shouldFallbackModel(modelErr)) {
+        const fallbackModel = model !== 'gemini-3.1-flash-lite' ? 'gemini-3.1-flash-lite' : 'gemini-4-hydrogen';
+        console.warn(`[Gemini Server] ${model} failed (${formatGeminiError(modelErr, '').substring(0, 100)}). Auto-falling back to ${fallbackModel}...`);
         response = await ai.models.generateContent({
-          model: 'gemini-3.1-flash-lite',
-          contents,
+          model: fallbackModel,
+          contents: preparedContents,
           config,
         });
       } else {
@@ -116,14 +181,21 @@ app.post('/api/gemini/generate-content', async (req, res) => {
   } catch (err: any) {
     console.error('Gemini generateContent error:', err);
     res.status(500).json({
-      error: err.message || 'Gemini generate content failed',
+      error: formatGeminiError(err, 'Gemini generate content failed'),
       details: err.toString(),
     });
+  } finally {
+    for (const fileName of uploadedFileNames) {
+      ai.files.delete({ name: fileName }).catch(() => {});
+    }
   }
 });
 
 // Streaming Content endpoint using Server-Sent Events (SSE)
 app.post('/api/gemini/generate-content-stream', async (req, res) => {
+  const ai = getGenAI();
+  let uploadedFileNames: string[] = [];
+
   try {
     const { model = 'gemini-3.1-flash-lite', contents, config } = req.body;
     if (!contents) {
@@ -135,27 +207,24 @@ app.post('/api/gemini/generate-content-stream', async (req, res) => {
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders?.();
 
-    const ai = getGenAI();
+    const normalized = await normalizeContentsForGemini(ai, contents);
+    const preparedContents = normalized.contents;
+    uploadedFileNames = normalized.uploadedFileNames;
+
     let stream;
     try {
       stream = await ai.models.generateContentStream({
         model,
-        contents,
+        contents: preparedContents,
         config,
       });
     } catch (modelErr: any) {
-      const errMsg = String(modelErr?.message || modelErr);
-      const isCapacityError = 
-        errMsg.includes('503') || 
-        errMsg.includes('high demand') || 
-        errMsg.includes('UNAVAILABLE') ||
-        errMsg.includes('429');
-
-      if (isCapacityError && model !== 'gemini-3.1-flash-lite') {
-        console.warn(`[Gemini Server Stream] ${model} unavailable. Auto-falling back to gemini-3.1-flash-lite...`);
+      if (shouldFallbackModel(modelErr)) {
+        const fallbackModel = model !== 'gemini-3.1-flash-lite' ? 'gemini-3.1-flash-lite' : 'gemini-4-hydrogen';
+        console.warn(`[Gemini Server Stream] ${model} unavailable. Auto-falling back to ${fallbackModel}...`);
         stream = await ai.models.generateContentStream({
-          model: 'gemini-3.1-flash-lite',
-          contents,
+          model: fallbackModel,
+          contents: preparedContents,
           config,
         });
       } else {
@@ -175,11 +244,16 @@ app.post('/api/gemini/generate-content-stream', async (req, res) => {
     res.end();
   } catch (err: any) {
     console.error('Gemini streaming error:', err);
+    const readableError = formatGeminiError(err, 'Gemini streaming failed');
     if (!res.headersSent) {
-      res.status(500).json({ error: err.message || 'Gemini streaming failed' });
+      res.status(500).json({ error: readableError });
     } else {
-      res.write(`data: ${JSON.stringify({ error: err.message || 'Stream encountered error' })}\n\n`);
+      res.write(`data: ${JSON.stringify({ error: readableError })}\n\n`);
       res.end();
+    }
+  } finally {
+    for (const fileName of uploadedFileNames) {
+      ai.files.delete({ name: fileName }).catch(() => {});
     }
   }
 });
