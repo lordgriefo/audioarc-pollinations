@@ -6993,24 +6993,33 @@ ${JSON.stringify(simplifiedBatch, null, 2)}
                           Google Gemini API Key Required
                         </h3>
                         <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                          Vercel / Standalone Deployment
+                          Free Setup &amp; Privacy First
                         </span>
                       </div>
                       <p className="text-xs text-gray-300 mt-1 max-w-2xl leading-relaxed">
-                        To generate storyboards, scene prompts, and visuals on your Vercel deployment, paste your Google Gemini API key below. It will be saved securely in your browser's local storage and used immediately.
+                        To generate storyboards, scene prompts, and screenplays, paste your free Google Gemini API key below. It is saved privately in your browser's local storage and connects directly to Google AI with zero middleman servers. Prefer zero keys? Click <strong className="text-pink-300">Pollinations Connect</strong> in the top header.
                       </p>
                     </div>
                   </div>
 
-                  <a 
-                    href="https://aistudio.google.com/app/apikey" 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="self-start lg:self-center text-xs text-blue-300 hover:text-white bg-blue-500/20 hover:bg-blue-500/30 px-3 py-1.5 rounded-lg border border-blue-400/30 flex items-center gap-1.5 transition-colors shrink-0 font-medium"
-                  >
-                    <span>Get a free API Key</span>
-                    <ExternalLink size={12} />
-                  </a>
+                  <div className="flex items-center gap-2 self-start lg:self-center shrink-0">
+                    <button 
+                      onClick={() => { setManualSection('providers'); setShowManual(true); }}
+                      className="text-xs text-cyan-300 hover:text-white bg-cyan-500/10 hover:bg-cyan-500/20 px-3 py-1.5 rounded-lg border border-cyan-400/30 flex items-center gap-1.5 transition-colors font-medium"
+                    >
+                      <BookOpen size={13} />
+                      <span>Setup Guide</span>
+                    </button>
+                    <a 
+                      href="https://aistudio.google.com/app/apikey" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-xs text-blue-300 hover:text-white bg-blue-500/20 hover:bg-blue-500/30 px-3 py-1.5 rounded-lg border border-blue-400/30 flex items-center gap-1.5 transition-colors font-medium"
+                    >
+                      <span>Get Free Key</span>
+                      <ExternalLink size={12} />
+                    </a>
+                  </div>
                 </div>
 
                 {/* Inline Quick Key Input Form */}
@@ -7057,12 +7066,12 @@ ${JSON.stringify(simplifiedBatch, null, 2)}
                   <button
                     onClick={() => {
                       setShowSettings(true);
-                      setSettingsTab('billing');
+                      setSettingsTab('config');
                     }}
                     className="px-3.5 py-2.5 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 shrink-0"
                     title="Open Full API Settings"
                   >
-                    <Settings size={14} /> Full Settings
+                    <Settings size={14} /> Settings
                   </button>
                 </div>
 
@@ -8809,6 +8818,20 @@ Example:
                                           )}
                                         </button>
                                       </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs">
+                                      <div className="flex items-center gap-2 text-blue-200">
+                                        <BookOpen size={15} className="text-blue-400 shrink-0" />
+                                        <span>Need help getting a free Gemini API key or syncing lyrics?</span>
+                                      </div>
+                                      <button 
+                                        type="button"
+                                        onClick={() => { setShowSettings(false); setManualSection('providers'); setShowManual(true); }}
+                                        className="text-cyan-400 hover:text-cyan-300 font-bold text-[11px] underline shrink-0 ml-2"
+                                      >
+                                        Open Setup Guide
+                                      </button>
                                     </div>
                                     {testStatuses.gemini === 'ok' && (
                                       <p className="text-emerald-400 text-xs flex items-center gap-1 font-medium">
@@ -11003,12 +11026,12 @@ Example:
               
               <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
                 {manualSection === 'core' && (
-                  <div className="space-y-12 animate-in slide-in-from-bottom-4 duration-500">
+                  <div className="space-y-10 animate-in slide-in-from-bottom-4 duration-500">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="bg-white/5 border border-white/10 p-6 rounded-xl relative overflow-hidden group">
                         <div className="absolute top-0 right-0 p-4 text-4xl font-black text-white/5 group-hover:text-cyan-500/10 transition-colors">01</div>
-                        <h3 className="text-cyan-400 font-bold mb-4 flex items-center gap-2">1. Input Lyrics</h3>
-                        <p className="text-gray-400 text-sm leading-relaxed">Paste your song lyrics or script into the left panel. This forms the backbone of your storyboard.</p>
+                        <h3 className="text-cyan-400 font-bold mb-4 flex items-center gap-2">1. Input Lyrics or Import</h3>
+                        <p className="text-gray-400 text-sm leading-relaxed">Paste your song lyrics directly into the left panel, or click <strong>Import File</strong> to load an existing <code className="text-cyan-300 font-mono text-xs">.lrc</code>, <code className="text-cyan-300 font-mono text-xs">.srt</code>, or text file.</p>
                       </div>
                       <div className="bg-white/5 border border-white/10 p-6 rounded-xl relative overflow-hidden group">
                         <div className="absolute top-0 right-0 p-4 text-4xl font-black text-white/5 group-hover:text-cyan-500/10 transition-colors">02</div>
@@ -11017,19 +11040,28 @@ Example:
                       </div>
                       <div className="bg-white/5 border border-white/10 p-6 rounded-xl relative overflow-hidden group">
                         <div className="absolute top-0 right-0 p-4 text-4xl font-black text-white/5 group-hover:text-cyan-500/10 transition-colors">03</div>
-                        <h3 className="text-cyan-400 font-bold mb-4 flex items-center gap-2">3. Generate</h3>
-                        <p className="text-gray-400 text-sm leading-relaxed">Click "Generate Storyboard" to create a scene-by-scene breakdown with detailed prompts and previews.</p>
+                        <h3 className="text-cyan-400 font-bold mb-4 flex items-center gap-2">3. Generate Storyboard</h3>
+                        <p className="text-gray-400 text-sm leading-relaxed">Click "Generate Storyboard" (or "Sync Timed Scenes" for timestamped LRC/SRT) to create an instant scene-by-scene breakdown with detailed prompts and previews.</p>
                       </div>
                     </div>
                     
-                    <div className="bg-cyan-500/5 border border-cyan-500/20 p-6 rounded-xl">
-                      <h4 className="text-cyan-400 font-bold mb-2 uppercase text-xs tracking-widest">Pro Tip</h4>
-                      <p className="text-gray-300 text-sm italic">"The more descriptive your Narrative Summary, the more cohesive the AI's vision will be across the entire project."</p>
+                    <div className="p-5 bg-gradient-to-r from-cyan-950/40 to-blue-950/30 border border-cyan-500/20 rounded-xl space-y-2">
+                      <h4 className="text-cyan-400 font-bold flex items-center gap-2 text-sm"><FileText size={16}/> Synchronized Lyrics &amp; Subtitle Import (.LRC / .SRT)</h4>
+                      <p className="text-gray-300 text-xs leading-relaxed">
+                        If you have a timed lyric sheet or subtitle file, click <strong>Import File</strong> at the top of the Script panel. Once loaded, click <strong>Sync Timed Scenes</strong> to automatically create storyboard scenes locked to the exact start and end timestamps from the file.
+                      </p>
                     </div>
 
-                    <div className="bg-purple-500/5 border border-purple-500/20 p-6 rounded-xl">
-                      <h4 className="text-purple-400 font-bold mb-2 uppercase text-xs tracking-widest">Structure Tip</h4>
-                      <p className="text-gray-300 text-sm italic">"Use tags like [Intro], [SFX: *train horn*], or [Instrument: Trumpet] in your lyrics to help the AI understand instrumental sections and sound design cues."</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-cyan-500/5 border border-cyan-500/20 p-5 rounded-xl">
+                        <h4 className="text-cyan-400 font-bold mb-2 uppercase text-xs tracking-widest">Narrative Tip</h4>
+                        <p className="text-gray-300 text-xs italic">"The more descriptive your Narrative Arc summary, the more cohesive the AI's character, lighting, and camera choices will be across the entire project."</p>
+                      </div>
+
+                      <div className="bg-purple-500/5 border border-purple-500/20 p-5 rounded-xl">
+                        <h4 className="text-purple-400 font-bold mb-2 uppercase text-xs tracking-widest">Structure Tags</h4>
+                        <p className="text-gray-300 text-xs italic">"Use tags like [Intro], [Guitar Solo], [Drop], or [SFX: *distant siren*] in your lyrics to help the AI understand instrumental sections and sound design cues."</p>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -11037,29 +11069,57 @@ Example:
                 {manualSection === 'audio' && (
                    <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
                       <div className="flex gap-6 items-start">
-                        <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-2xl text-purple-400">
+                        <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-2xl text-purple-400 shrink-0">
                           <Mic size={32} />
                         </div>
-                        <div>
-                          <p className="text-gray-300 leading-relaxed mb-6">The Audio Intelligence engine allows you to sync your storyboard perfectly to a music track. It listens for rhythm, energy, and structural changes.</p>
-                          <ul className="space-y-4">
+                        <div className="space-y-4">
+                          <p className="text-gray-300 leading-relaxed text-sm">The Audio Intelligence engine allows you to sync your storyboard perfectly to a music track. It listens for rhythm, energy, and structural changes.</p>
+                          <ul className="space-y-3">
                             <li className="flex gap-3">
                               <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
-                              <span className="text-sm text-gray-400"><strong className="text-gray-200">Automatic Timing:</strong> Scenes are automatically sized based on the song's duration and rhythm.</span>
+                              <span className="text-xs text-gray-400"><strong className="text-gray-200">Automatic Timing:</strong> Scenes are automatically sized based on the song's duration and rhythm.</span>
                             </li>
                             <li className="flex gap-3">
                               <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
-                              <span className="text-sm text-gray-400"><strong className="text-gray-200">Lyric Sync & .LRC Generation:</strong> The engine syncs lyrics to timestamps and generates standard synchronized <code className="text-purple-300 font-mono text-xs">.lrc</code> files for lyric video visualizers.</span>
+                              <span className="text-xs text-gray-400"><strong className="text-gray-200">Lyric Sync &amp; .LRC Generation:</strong> The engine syncs lyrics to timestamps and generates standard synchronized <code className="text-purple-300 font-mono text-[11px]">.lrc</code> files for lyric video visualizers.</span>
                             </li>
                             <li className="flex gap-3">
                               <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
-                              <span className="text-sm text-gray-400"><strong className="text-gray-200">Snap to Beats & Peaks:</strong> Real-time transient audio peak detection detects rhythmic drops and snaps scene cut points right to the beat.</span>
+                              <span className="text-xs text-gray-400"><strong className="text-gray-200">Snap to Beats &amp; Peaks:</strong> Real-time transient audio peak detection detects rhythmic drops and snaps scene cut points right to the beat.</span>
                             </li>
                             <li className="flex gap-3">
                               <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
-                              <span className="text-sm text-gray-400"><strong className="text-gray-200">Interactive Visualizer:</strong> Waveform scrubbers and real-time frequency analysis display audio energy as you playback and refine.</span>
+                              <span className="text-xs text-gray-400"><strong className="text-gray-200">Interactive Visualizer:</strong> Waveform scrubbers and real-time frequency analysis display audio energy as you playback and refine.</span>
                             </li>
                           </ul>
+                        </div>
+                      </div>
+
+                      {/* Music Transcription & Whisper Repetition Tips */}
+                      <div className="p-5 rounded-xl bg-purple-950/30 border border-purple-500/30 space-y-3">
+                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                          <AlertCircle size={16} className="text-purple-400" />
+                          <span>Audio Transcription &amp; Handling Loud Music Mixes</span>
+                        </h4>
+                        <p className="text-xs text-gray-300 leading-relaxed">
+                          Audio transcription tools like browser Whisper (WASM) are designed primarily for clean spoken dialogue. When applied to songs with loud drums, distorted guitars, heavy basslines, or complex synthesizers (such as energetic rock or electronic songs), the AI Voice Activity Detector can hallucinate or get stuck repeating a phrase endlessly.
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                          <div className="p-3 bg-black/40 rounded-lg border border-white/5 space-y-1">
+                            <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Method 1 (Best)</span>
+                            <p className="text-xs font-semibold text-white">Import .LRC or .SRT</p>
+                            <p className="text-[11px] text-gray-400 leading-relaxed">Load an existing timestamped lyric file and click <strong>Sync Timed Scenes</strong> for 100% timecode accuracy.</p>
+                          </div>
+                          <div className="p-3 bg-black/40 rounded-lg border border-white/5 space-y-1">
+                            <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">Method 2</span>
+                            <p className="text-xs font-semibold text-white">Paste Plain Lyrics</p>
+                            <p className="text-[11px] text-gray-400 leading-relaxed">Paste lyrics directly and let Gemini analyze verse/chorus structure and calculate balanced scene durations.</p>
+                          </div>
+                          <div className="p-3 bg-black/40 rounded-lg border border-white/5 space-y-1">
+                            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Method 3</span>
+                            <p className="text-xs font-semibold text-white">Multimodal Audio</p>
+                            <p className="text-[11px] text-gray-400 leading-relaxed">Upload an audio file directly so the engine detects BPM, energetic drops, and waveform peaks for beat-snapping.</p>
+                          </div>
                         </div>
                       </div>
                    </div>
@@ -11230,37 +11290,115 @@ Example:
 
                 {manualSection === 'providers' && (
                    <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-                      <div className="space-y-6">
-                        <div className="p-4 bg-white/5 border border-white/10 rounded-xl">
-                          <div className="flex justify-between items-start mb-2">
-                            <h4 className="text-sm font-bold text-white">Google Gemini (Recommended)</h4>
-                            <span className="text-[10px] px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded-full border border-blue-500/20 font-bold">Free & Paid Tiers</span>
-                          </div>
-                          <p className="text-xs text-gray-400 mb-4">The primary engine for narrative analysis and prompt generation. Supports free and paid tiers.</p>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="p-2 bg-black/20 rounded border border-white/5">
-                                <p className="text-[9px] font-bold text-gray-500 uppercase mb-1">Free Tier</p>
-                                <p className="text-[10px] text-gray-400">Great for experimentation. Subject to rate limits.</p>
+                      {/* Provider 1: Google Gemini */}
+                      <div className="p-6 bg-gradient-to-br from-blue-950/30 to-black/40 border border-blue-500/30 rounded-2xl space-y-5">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400 shrink-0">
+                              <Sparkles size={22} />
                             </div>
-                            <div className="p-2 bg-black/20 rounded border border-white/5">
-                                <p className="text-[9px] font-bold text-blue-500 uppercase mb-1">Paid Tier (Pay-as-you-go)</p>
-                                <p className="text-[10px] text-gray-400">Higher rate limits and access to advanced models like Gemini 1.5 Pro.</p>
+                            <div>
+                              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                                Google Gemini <span className="text-xs font-normal text-blue-400">(Recommended)</span>
+                              </h3>
+                              <p className="text-xs text-gray-400">Direct client connection via Google Generative Language API.</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] px-2.5 py-1 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 font-bold uppercase tracking-wider">100% Free Tier</span>
+                            <a 
+                              href="https://aistudio.google.com/app/apikey" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs text-white bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all shadow-sm shadow-blue-500/30 shrink-0"
+                            >
+                              <span>Get Free Key</span>
+                              <ExternalLink size={12} />
+                            </a>
+                          </div>
+                        </div>
+
+                        {/* Step by Step Guide */}
+                        <div className="space-y-3">
+                          <h4 className="text-xs font-bold text-gray-300 uppercase tracking-wider">How to Connect Your Gemini Key in 3 Steps:</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="p-3.5 bg-black/40 rounded-xl border border-white/5 space-y-1">
+                              <span className="text-xs font-bold text-blue-400">Step 1</span>
+                              <p className="text-xs font-semibold text-white">Create a Free Key</p>
+                              <p className="text-[11px] text-gray-400 leading-relaxed">
+                                Go to <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline">Google AI Studio</a>. Sign in with any Google account and click <strong>Create API key</strong>. No credit card or billing setup required.
+                              </p>
+                            </div>
+                            <div className="p-3.5 bg-black/40 rounded-xl border border-white/5 space-y-1">
+                              <span className="text-xs font-bold text-blue-400">Step 2</span>
+                              <p className="text-xs font-semibold text-white">Paste into AudioArc</p>
+                              <p className="text-[11px] text-gray-400 leading-relaxed">
+                                Paste the key (starts with <code className="text-blue-300 font-mono text-[10px]">AIzaSy...</code>) into the top blue banner or open <strong>Settings &gt; Configuration &gt; Gemini</strong>.
+                              </p>
+                            </div>
+                            <div className="p-3.5 bg-black/40 rounded-xl border border-white/5 space-y-1">
+                              <span className="text-xs font-bold text-blue-400">Step 3</span>
+                              <p className="text-xs font-semibold text-white">Save &amp; Verify</p>
+                              <p className="text-[11px] text-gray-400 leading-relaxed">
+                                Click <strong>Save &amp; Connect Key</strong>. AudioArc verifies the key directly with Google. All features—storyboards, screenplay scripts, and prompt styling—unlock immediately.
+                              </p>
                             </div>
                           </div>
                         </div>
-                        <div className="p-4 bg-white/5 border border-white/10 rounded-xl">
-                          <h4 className="text-sm font-bold text-white mb-2">Video Pipelines (Veo / Runway / LTX)</h4>
-                          <p className="text-xs text-gray-400 mb-4">AudioArc generates optimized prompts for the world's leading video models.</p>
-                          <div className="flex gap-2 flex-wrap">
-                            <span className="text-[9px] px-2 py-1 bg-white/5 rounded text-gray-400 border border-white/5">Veo (Google)</span>
-                            <span className="text-[9px] px-2 py-1 bg-white/5 rounded text-gray-400 border border-white/5">Runway Gen-3</span>
-                            <span className="text-[9px] px-2 py-1 bg-white/5 rounded text-gray-400 border border-white/5">Luma Dream Machine</span>
-                            <span className="text-[9px] px-2 py-1 bg-white/5 rounded text-gray-400 border border-white/5">Kling AI</span>
+
+                        {/* Security & Architecture Note */}
+                        <div className="p-3 bg-blue-950/20 border border-blue-500/20 rounded-xl text-xs text-blue-200/90 space-y-1">
+                          <p className="font-bold flex items-center gap-1.5 text-blue-300">
+                            <ShieldCheck size={14} /> 100% Client-Side Privacy &amp; Direct Connection:
+                          </p>
+                          <p className="text-[11px] text-gray-400 leading-relaxed">
+                            Your API key is stored strictly inside your browser's private <code className="text-gray-300 font-mono text-[10px]">localStorage</code>. All requests are sent directly to Google's official Generative Language API endpoint (<code className="text-gray-300 font-mono text-[10px]">generativelanguage.googleapis.com</code>) via HTTPS. No intermediate servers or proxies ever see or log your credentials.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Provider 2: Pollinations Connect */}
+                      <div className="p-6 bg-gradient-to-br from-pink-950/30 to-black/40 border border-pink-500/30 rounded-2xl space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-pink-500/20 border border-pink-400/30 flex items-center justify-center text-pink-400 shrink-0">
+                              <Zap size={22} />
+                            </div>
+                            <div>
+                              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                                Pollinations.ai <span className="text-xs font-normal text-pink-400">(Zero Keys Needed)</span>
+                              </h3>
+                              <p className="text-xs text-gray-400">1-click GitHub authorization with free text and image generation.</p>
+                            </div>
+                          </div>
+                          <span className="text-[10px] px-2.5 py-1 bg-pink-500/10 text-pink-400 rounded-full border border-pink-500/20 font-bold uppercase tracking-wider">1-Click Connect</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="p-4 bg-black/40 rounded-xl border border-white/5 space-y-2">
+                            <h4 className="text-xs font-bold text-white flex items-center gap-1.5"><Zap size={14} className="text-pink-400"/> 1-Click Login:</h4>
+                            <p className="text-xs text-gray-400 leading-relaxed">
+                              Don't want to create or manage API keys? Click the <strong>Pollinations Connect</strong> button in the top navigation bar to authenticate with GitHub in one click.
+                            </p>
+                          </div>
+                          <div className="p-4 bg-black/40 rounded-xl border border-white/5 space-y-2">
+                            <h4 className="text-xs font-bold text-white flex items-center gap-1.5"><ImageIcon size={14} className="text-pink-400"/> Free Storyboard Visuals:</h4>
+                            <p className="text-xs text-gray-400 leading-relaxed">
+                              Pollinations generates 1280x720 cinematic 16:9 storyboard frames directly for all your scenes without requiring any credit card or token billing.
+                            </p>
                           </div>
                         </div>
-                        <div className="p-4 bg-white/5 border border-white/10 rounded-xl">
-                          <h4 className="text-sm font-bold text-white mb-2">Ollama (Local)</h4>
-                          <p className="text-xs text-gray-400">Run models locally on your own hardware for maximum privacy and zero cost. Requires Ollama to be running on your machine.</p>
+                      </div>
+
+                      {/* Provider 3: Other Pipelines */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-2">
+                          <h4 className="text-sm font-bold text-white flex items-center gap-2"><Cpu size={16} className="text-orange-400"/> Ollama &amp; LM Studio (Local AI)</h4>
+                          <p className="text-xs text-gray-400 leading-relaxed">Run local LLMs on your own GPU with complete offline privacy and zero cost. Set your local server URL in Settings &gt; Configuration.</p>
+                        </div>
+                        <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-2">
+                          <h4 className="text-sm font-bold text-white flex items-center gap-2"><Cloud size={16} className="text-emerald-400"/> OpenRouter &amp; OpenAI</h4>
+                          <p className="text-xs text-gray-400 leading-relaxed">Connect to hundreds of open-source and proprietary models (Claude 3.5 Sonnet, GPT-4o, DeepSeek R1) using custom keys.</p>
                         </div>
                       </div>
                    </div>

@@ -35,6 +35,24 @@ export interface GenerateImageResult {
 }
 
 /**
+ * Map codenames and model aliases to valid Google AI Studio Generative Language API models
+ */
+export function mapToGoogleGenerativeModel(model: string): string {
+  const clean = (model || '').replace(/^models\//, '').trim();
+  if (!clean) return 'gemini-2.5-flash';
+  if (clean.includes('hydrogen') || clean.includes('flash-lite') || clean === 'gemini-3.1-flash-lite') {
+    return 'gemini-2.5-flash';
+  }
+  if (clean.includes('argon') || clean.includes('carbon') || clean.includes('pro')) {
+    return 'gemini-1.5-pro';
+  }
+  if (clean.includes('gemini-2.5') || clean.includes('gemini-2.0') || clean.includes('gemini-1.5')) {
+    return clean;
+  }
+  return 'gemini-2.5-flash';
+}
+
+/**
  * Generate text or structured content via server-side Gemini endpoint or direct Google API fallback
  */
 export async function generateContentServer(params: {
@@ -61,7 +79,7 @@ export async function generateContentServer(params: {
     throw new Error('Google Gemini API key missing. Please paste your key in Settings or connect via Pollinations.');
   }
 
-  const cleanModel = params.model.replace(/^models\//, '');
+  const cleanModel = mapToGoogleGenerativeModel(params.model);
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${clientKey.trim()}`;
 
   let contentsPayload: any = [];
