@@ -971,8 +971,8 @@ export const App: React.FC = () => {
   });
 
   const getEffectiveGeminiKey = useCallback((): string => {
-    return 'server-managed';
-  }, []);
+    return geminiApiKey.trim() || localStorage.getItem('audioarc_gemini_key') || '';
+  }, [geminiApiKey]);
 
   const [showGeminiKeySecret, setShowGeminiKeySecret] = useState<boolean>(false);
 
@@ -8755,35 +8755,60 @@ Example:
                                 
                                 {provider === 'gemini' && (
                                   <div className="space-y-4">
-                                    <div className="p-3 bg-blue-950/30 border border-blue-500/30 rounded-xl flex items-center justify-between">
-                                      <div className="flex items-center gap-2.5">
-                                        <Sparkles size={16} className="text-blue-400 shrink-0" />
-                                        <div>
-                                          <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                                            <span>Full-Stack Server Gemini API</span>
-                                            <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-mono">Server Ready</span>
-                                          </div>
-                                          <p className="text-[11px] text-gray-400 mt-0.5">
-                                            Model calls are executed via server-side endpoints (/api/gemini/*). Key is managed in Settings &gt; Secrets.
-                                          </p>
+                                    <div className="p-3.5 rounded-xl bg-blue-950/30 border border-blue-500/30 space-y-2.5">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                          <Sparkles size={16} className="text-blue-400 shrink-0" />
+                                          <label className="text-xs font-bold text-white">Google Gemini API Key</label>
                                         </div>
+                                        <a 
+                                          href="https://aistudio.google.com/app/apikey" 
+                                          target="_blank" 
+                                          rel="noopener noreferrer" 
+                                          className="text-[10px] text-blue-300 hover:text-white bg-blue-500/20 hover:bg-blue-500/30 px-2 py-0.5 rounded border border-blue-400/30 flex items-center gap-1 transition-colors"
+                                        >
+                                          <span>Get Free Key</span>
+                                          <ExternalLink size={10} />
+                                        </a>
                                       </div>
-                                      <button 
-                                        type="button"
-                                        onClick={() => handleTestConnection('gemini')}
-                                        disabled={testStatuses.gemini === 'testing'}
-                                        className="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition-all shrink-0"
-                                      >
-                                        {testStatuses.gemini === 'testing' ? (
-                                          <><Loader2 size={12} className="animate-spin" /> Verifying...</>
-                                        ) : testStatuses.gemini === 'ok' ? (
-                                          <><Check size={12} className="text-emerald-300" /> Verified</>
-                                        ) : testStatuses.gemini === 'error' ? (
-                                          <><X size={12} className="text-red-300" /> Failed</>
-                                        ) : (
-                                          <><Zap size={12} /> Test Server</>
-                                        )}
-                                      </button>
+                                      
+                                      <div className="relative">
+                                        <input 
+                                          type={showGeminiKeySecret ? "text" : "password"}
+                                          placeholder="AIzaSy..."
+                                          value={geminiApiKey}
+                                          onChange={(e) => handleUpdateGeminiKey(e.target.value)}
+                                          className="w-full bg-black/60 border border-white/15 rounded-lg px-3 py-2 text-sm font-mono text-white placeholder-gray-500 outline-none focus:border-blue-400/70 focus:ring-1 focus:ring-blue-400 transition-all pr-10"
+                                        />
+                                        <button 
+                                          type="button" 
+                                          onClick={() => setShowGeminiKeySecret(!showGeminiKeySecret)} 
+                                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                                          title={showGeminiKeySecret ? "Hide key" : "Show key"}
+                                        >
+                                          {showGeminiKeySecret ? <EyeOff size={14} /> : <Eye size={14} />}
+                                        </button>
+                                      </div>
+
+                                      <div className="flex items-center justify-between pt-1">
+                                        <span className="text-[11px] text-gray-400">Saved securely in your browser. (Or use Pollinations for 1-click login without keys.)</span>
+                                        <button 
+                                          type="button"
+                                          onClick={() => handleTestConnection('gemini')}
+                                          disabled={testStatuses.gemini === 'testing'}
+                                          className="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition-all shrink-0"
+                                        >
+                                          {testStatuses.gemini === 'testing' ? (
+                                            <><Loader2 size={12} className="animate-spin" /> Verifying...</>
+                                          ) : testStatuses.gemini === 'ok' ? (
+                                            <><Check size={12} className="text-emerald-300" /> Verified</>
+                                          ) : testStatuses.gemini === 'error' ? (
+                                            <><X size={12} className="text-red-300" /> Failed</>
+                                          ) : (
+                                            <><Zap size={12} /> Test Key</>
+                                          )}
+                                        </button>
+                                      </div>
                                     </div>
                                     {testStatuses.gemini === 'ok' && (
                                       <p className="text-emerald-400 text-xs flex items-center gap-1 font-medium">

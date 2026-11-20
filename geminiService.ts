@@ -35,29 +35,75 @@ export interface GenerateImageResult {
 }
 
 /**
- * Generate text or structured content via server-side Gemini endpoint
+ * Generate text or structured content via server-side Gemini endpoint or direct Google API fallback
  */
 export async function generateContentServer(params: {
   model: string;
   contents: any;
   config?: any;
 }): Promise<GeminiResponse> {
-  const response = await fetch('/api/gemini/generate-content', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
+  // Try server endpoint first if available
+  try {
+    const response = await fetch('/api/gemini/generate-content', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
 
-  if (!response.ok) {
-    let errorMsg = `Server error ${response.status}`;
-    try {
-      const errorData = await response.json();
-      errorMsg = errorData.error || errorMsg;
-    } catch {}
-    throw new Error(errorMsg);
+    if (response.ok) {
+      return response.json();
+    }
+  } catch {}
+
+  // Fallback to direct client-side Google API
+  const clientKey = typeof window !== 'undefined' ? localStorage.getItem('audioarc_gemini_key') || '' : '';
+  if (!clientKey) {
+    throw new Error('Google Gemini API key missing. Please paste your key in Settings or connect via Pollinations.');
   }
 
-  return response.json();
+  const cleanModel = params.model.replace(/^models\//, '');
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${clientKey.trim()}`;
+
+  let contentsPayload: any = [];
+  if (typeof params.contents === 'string') {
+    contentsPayload = [{ parts: [{ text: params.contents }] }];
+  } else if (Array.isArray(params.contents)) {
+    contentsPayload = params.contents;
+  } else if (params.contents && params.contents.parts) {
+    contentsPayload = [params.contents];
+  } else {
+    contentsPayload = [{ parts: [{ text: JSON.stringify(params.contents) }] }];
+  }
+
+  const bodyPayload: any = {
+    contents: contentsPayload,
+  };
+
+  if (params.config?.responseMimeType) {
+    bodyPayload.generationConfig = {
+      responseMimeType: params.config.responseMimeType,
+      ...(params.config.responseSchema ? { responseSchema: params.config.responseSchema } : {})
+    };
+  }
+
+  const directRes = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(bodyPayload),
+  });
+
+  if (!directRes.ok) {
+    const errData = await directRes.json().catch(() => ({}));
+    throw new Error(errData.error?.message || `Google API error ${directRes.status}`);
+  }
+
+  const resJson = await directRes.json();
+  const candidateText = resJson.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  return {
+    text: candidateText,
+    candidates: resJson.candidates,
+    usageMetadata: resJson.usageMetadata,
+  };
 }
 
 /**
@@ -191,31 +237,49 @@ export async function generateVideoServer(params: {
 }
 
 /**
- * Ping server Gemini connection to test latency and availability
+ * Ping server Gemini connection or test direct Google Generative Language API
  */
-export async function pingGeminiServer(model: string = 'gemini-3.1-flash-lite'): Promise<{ ok: boolean; message: string }> {
-  const response = await fetch('/api/gemini/ping', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model }),
-  });
+export async function pingGeminiServer(model: string = 'gemini-2.5-flash-lite', explicitKey?: string): Promise<{ ok: boolean; message: string }> {
+  const clientKey = explicitKey || (typeof window !== 'undefined' ? localStorage.getItem('audioarc_gemini_key') || '' : '');
 
-  if (!response.ok) {
-    let errorMsg = 'Failed to connect to Gemini server';
+  // Try server endpoint first
+  try {
+    const response = await fetch('/api/gemini/ping', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model }),
+    });
+
+    if (response.ok) {
+      return { ok: true, message: 'Server connection verified' };
+    }
+  } catch {}
+
+  // Direct client-side verification
+  if (clientKey) {
     try {
-      const data = await response.json();
-      errorMsg = data.error || errorMsg;
-    } catch {}
-    throw new Error(errorMsg);
+      const googleRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${clientKey.trim()}`);
+      if (googleRes.ok) {
+        return { ok: true, message: 'Google Gemini API key verified directly' };
+      }
+      const errData = await googleRes.json().catch(() => ({}));
+      throw new Error(errData.error?.message || `Google API error ${googleRes.status}`);
+    } catch (err: any) {
+      throw new Error(err.message || 'Failed to verify Google Gemini API key');
+    }
   }
 
-  return { ok: true, message: 'Server connection verified' };
+  throw new Error('No Gemini API key provided. Please enter your Google Gemini API key or use Pollinations.');
 }
 
 /**
- * Get server-side Gemini status and capabilities
+ * Get Gemini status: checks client-stored key or server-side endpoint
  */
 export async function checkGeminiStatus(): Promise<{ ok: boolean; hasKey: boolean; message: string }> {
+  const clientKey = typeof window !== 'undefined' ? localStorage.getItem('audioarc_gemini_key') || '' : '';
+  if (clientKey) {
+    return { ok: true, hasKey: true, message: 'Google Gemini key detected locally' };
+  }
   try {
     const response = await fetch('/api/gemini/status');
     if (!response.ok) {
