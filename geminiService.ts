@@ -114,65 +114,65 @@ export async function* generateContentStreamServer(params: {
   contents: any;
   config?: any;
 }): AsyncGenerator<StreamChunk, void, unknown> {
-  const response = await fetch('/api/gemini/generate-content-stream', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-
-  if (!response.ok) {
-    let errorMsg = `Server streaming error ${response.status}`;
-    try {
-      const errorData = await response.json();
-      errorMsg = errorData.error || errorMsg;
-    } catch {}
-    throw new Error(errorMsg);
-  }
-
-  if (!response.body) {
-    throw new Error('Streaming response body is null');
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder('utf-8');
-  let buffer = '';
-
+  // Try server streaming endpoint first if available
   try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    const response = await fetch('/api/gemini/generate-content-stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
+    if (response.ok && response.body) {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
 
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || !trimmed.startsWith('data:')) continue;
-        const dataStr = trimmed.replace(/^data:\s*/, '');
-        if (dataStr === '[DONE]') {
-          return;
-        }
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        try {
-          const parsed = JSON.parse(dataStr);
-          if (parsed.error) {
-            throw new Error(parsed.error);
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || !trimmed.startsWith('data:')) continue;
+            const dataStr = trimmed.replace(/^data:\s*/, '');
+            if (dataStr === '[DONE]') {
+              return;
+            }
+
+            try {
+              const parsed = JSON.parse(dataStr);
+              if (parsed.error) {
+                throw new Error(parsed.error);
+              }
+              yield {
+                text: parsed.text || '',
+                usageMetadata: parsed.usageMetadata,
+              };
+            } catch (e: any) {
+              if (e.message && !e.message.includes('JSON')) {
+                throw e;
+              }
+            }
           }
-          yield {
-            text: parsed.text || '',
-            usageMetadata: parsed.usageMetadata,
-          };
-        } catch (e: any) {
-          if (e.message && !e.message.includes('JSON')) {
-            throw e;
-          }
         }
+        return;
+      } finally {
+        reader.releaseLock();
       }
     }
-  } finally {
-    reader.releaseLock();
-  }
+  } catch {}
+
+  // Fallback to client-side direct generation (supports direct Google API & Pollinations without 405 errors)
+  const fallbackRes = await generateContentServer(params);
+  yield {
+    text: fallbackRes.text || '',
+    usageMetadata: fallbackRes.usageMetadata,
+  };
 }
 
 /**
