@@ -6503,12 +6503,12 @@ ${JSON.stringify(simplifiedBatch, null, 2)}
                 </div>
             </div>
         </div>
-        <div className="hidden md:flex items-center gap-3 bg-white/5 border border-white/5 rounded-full px-4 py-1.5 backdrop-blur-md">
-            <div className="flex items-center gap-1.5 text-xs text-gray-300 font-medium border-r border-white/10 pr-3"> <Film size={12} className="text-purple-400"/> {selectedStyle.name} </div>
-            <div className="flex items-center gap-1.5 text-xs text-gray-300 font-medium border-r border-white/10 pr-3"> <Grid size={12} className="text-blue-400"/> {selectedInfluences.length} Inf. </div>
+        <div className="hidden md:flex items-center gap-2.5 bg-white/5 border border-white/5 rounded-full px-3 py-1 backdrop-blur-md shrink-0">
+            <div className="hidden xl:flex items-center gap-1.5 text-xs text-gray-300 font-medium border-r border-white/10 pr-2.5"> <Film size={12} className="text-purple-400"/> {selectedStyle.name} </div>
+            <div className="hidden 2xl:flex items-center gap-1.5 text-xs text-gray-300 font-medium border-r border-white/10 pr-2.5"> <Grid size={12} className="text-blue-400"/> {selectedInfluences.length} Inf. </div>
             <button 
               onClick={() => { setColorGradeFocusSceneIndex(null); setShowColorGradeModal(true); }}
-              className="flex items-center gap-1.5 text-xs text-purple-300 hover:text-white font-medium border-r border-white/10 pr-3 transition-colors"
+              className="hidden lg:flex items-center gap-1.5 text-xs text-purple-300 hover:text-white font-medium border-r border-white/10 pr-2.5 transition-colors"
               title="Open Color Grading & Filter Recommendations Studio"
             >
               <Palette size={12} className="text-purple-400"/> Color Grade

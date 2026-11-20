@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -24,6 +24,44 @@
         body { font-family: 'Inter', sans-serif; }
         h1, h2, h3, .brand-font { font-family: 'Orbitron', sans-serif; }
         .mono-font { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Pollinations Connect Button Dark Theme & Contrast Fix */
+        html.dark polli-connect,
+        polli-connect {
+            --polli-color-text-strong: #ffffff !important;
+            --polli-color-bg: rgba(255, 255, 255, 0.08) !important;
+            display: inline-flex !important;
+            align-items: center !important;
+        }
+        polli-connect button, 
+        polli-connect .polli-control,
+        polli-connect [data-intent="brand"] {
+            color: #ffffff !important;
+            background: rgba(236, 72, 153, 0.2) !important;
+            border: 1px solid rgba(236, 72, 153, 0.5) !important;
+            border-radius: 9999px !important;
+            font-size: 11px !important;
+            font-weight: 600 !important;
+            padding: 4px 12px !important;
+            height: 30px !important;
+            white-space: nowrap !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            transition: all 0.2s ease !important;
+        }
+        polli-connect button:hover, 
+        polli-connect .polli-control:hover,
+        polli-connect [data-intent="brand"]:hover {
+            background: rgba(236, 72, 153, 0.35) !important;
+            border-color: rgba(236, 72, 153, 0.8) !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 10px rgba(236, 72, 153, 0.4) !important;
+        }
+        polli-connect svg {
+            color: #f472b6 !important;
+            fill: currentColor !important;
+        }
         
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
