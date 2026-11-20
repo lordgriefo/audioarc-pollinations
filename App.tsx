@@ -887,7 +887,7 @@ export const App: React.FC = () => {
   const [pollinationsModel, setPollinationsModel] = useState<string>(() => localStorage.getItem('audioarc_pollinations_model') || 'openai');
   const [pollinationsApiKey, setPollinationsApiKey] = useState<string>(() => localStorage.getItem('audioarc_pollinations_key') || '');
   const [availablePollinationsModels, setAvailablePollinationsModels] = useState<string[]>([
-    'openai', 'openai-fast', 'qwen', 'mistral', 'deepseek', 'llama', 'claude'
+    'openai', 'deepseek', 'mistral', 'llama', 'grok'
   ]);
   const [openRouterModelSearch, setOpenRouterModelSearch] = useState<string>('');
   const [openRouterImageModelSearch, setOpenRouterImageModelSearch] = useState<string>('');
@@ -1558,10 +1558,68 @@ export const App: React.FC = () => {
 
               if (!res.ok) {
                   let errText = `HTTP ${res.status}: ${res.statusText}`;
+                  let requiresKey = res.status === 401 || res.status === 402;
                   try {
                       const errData = await res.json();
                       errText = errData.error?.message || errData.message || JSON.stringify(errData);
+                      if (/api key is required|quota|pollen|usdc/i.test(errText)) {
+                          requiresKey = true;
+                      }
                   } catch {}
+
+                  // Auto-fallback 1: If current model requires an API key and user has none, retry with free 'openai' model
+                  if (requiresKey && !pollinationsApiKey.trim() && (pollinationsModel || 'openai') !== 'openai') {
+                      console.warn(`[Pollinations] Model '${pollinationsModel}' requires API key. Auto-recovering with free 'openai' model.`);
+                      payload.model = 'openai';
+                      try {
+                          const retryRes = await fetch(url, {
+                              method: 'POST',
+                              signal: controller.signal,
+                              headers,
+                              body: JSON.stringify(payload)
+                          });
+                          if (retryRes.ok) {
+                              const retryData = await retryRes.json();
+                              resultText = retryData.choices?.[0]?.message?.content || '';
+                              if (resultText) {
+                                  updateUsage(null, prompt, resultText);
+                                  return resultText;
+                              }
+                          }
+                      } catch (retryErr) {
+                          console.warn('[Pollinations] Fallback to openai model failed:', retryErr);
+                      }
+                  }
+
+                  // Auto-fallback 2: If gen.pollinations.ai endpoint throws key requirement, fallback to text.pollinations.ai
+                  if (!pollinationsApiKey.trim()) {
+                      try {
+                          console.warn('[Pollinations] Falling back to text.pollinations.ai anonymous endpoint.');
+                          const fbUrl = 'https://text.pollinations.ai/';
+                          const fbPayload = {
+                              messages: payload.messages,
+                              model: 'openai',
+                              jsonMode: isJson,
+                              seed: Math.floor(Math.random() * 1000000)
+                          };
+                          const fbRes = await fetch(fbUrl, {
+                              method: 'POST',
+                              signal: controller.signal,
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify(fbPayload)
+                          });
+                          if (fbRes.ok) {
+                              const fbText = await fbRes.text();
+                              if (fbText) {
+                                  updateUsage(null, prompt, fbText);
+                                  return fbText;
+                              }
+                          }
+                      } catch (fbErr) {
+                          console.warn('[Pollinations] Fallback to text.pollinations.ai failed:', fbErr);
+                      }
+                  }
+
                   throw new Error(`Pollinations Error: ${errText}`);
               }
               const data = await res.json();
@@ -3593,9 +3651,18 @@ One-sentence scene summary:`;
       const res = await fetch(testUrl);
       if (res.ok) {
         const data = await res.json();
+        const hasKey = Boolean(pollinationsApiKey.trim());
         if (Array.isArray(data.data)) {
-          const names = data.data.map((m: any) => m.id || m.name).filter(Boolean);
-          if (names.length > 0) setAvailablePollinationsModels(names);
+          // If user has no API key, filter to free models (paid_only: false)
+          const models = data.data
+            .filter((m: any) => hasKey || !m.paid_only)
+            .map((m: any) => {
+              if (m.aliases && m.aliases.length > 0) return m.aliases[0];
+              return m.id || m.name;
+            })
+            .filter(Boolean);
+          const unique = Array.from(new Set(['openai', 'deepseek', 'mistral', 'llama', 'grok', ...models]));
+          if (unique.length > 0) setAvailablePollinationsModels(unique);
         } else if (Array.isArray(data)) {
           const names = data.map((m: any) => m.name || m.id).filter(Boolean);
           if (names.length > 0) setAvailablePollinationsModels(names);
