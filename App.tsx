@@ -6506,12 +6506,12 @@ ${JSON.stringify(simplifiedBatch, null, 2)}
                 </div>
             </div>
         </div>
-        <div className="hidden md:flex items-center gap-2.5 bg-white/5 border border-white/5 rounded-full px-3 py-1 backdrop-blur-md shrink-0">
-            <div className="hidden xl:flex items-center gap-1.5 text-xs text-gray-300 font-medium border-r border-white/10 pr-2.5"> <Film size={12} className="text-purple-400"/> {selectedStyle.name} </div>
+        <div className="hidden md:flex items-center gap-2 bg-white/5 border border-white/5 rounded-full px-2.5 py-1 backdrop-blur-md shrink-0">
+            <div className="hidden 2xl:flex items-center gap-1.5 text-xs text-gray-300 font-medium border-r border-white/10 pr-2.5"> <Film size={12} className="text-purple-400"/> {selectedStyle.name} </div>
             <div className="hidden 2xl:flex items-center gap-1.5 text-xs text-gray-300 font-medium border-r border-white/10 pr-2.5"> <Grid size={12} className="text-blue-400"/> {selectedInfluences.length} Inf. </div>
             <button 
               onClick={() => { setColorGradeFocusSceneIndex(null); setShowColorGradeModal(true); }}
-              className="hidden lg:flex items-center gap-1.5 text-xs text-purple-300 hover:text-white font-medium border-r border-white/10 pr-2.5 transition-colors"
+              className="hidden 2xl:flex items-center gap-1.5 text-xs text-purple-300 hover:text-white font-medium border-r border-white/10 pr-2.5 transition-colors"
               title="Open Color Grading & Filter Recommendations Studio"
             >
               <Palette size={12} className="text-purple-400"/> Color Grade
@@ -6588,7 +6588,7 @@ ${JSON.stringify(simplifiedBatch, null, 2)}
             <div className="hidden md:block h-6 w-px bg-white/10"></div>
             
             {/* PWA Install Button for Android, iPhone, and Desktop */}
-            <div className="flex items-center">
+            <div className="hidden 2xl:flex items-center">
               <PWAInstallButton compact />
             </div>
 
@@ -6616,7 +6616,7 @@ ${JSON.stringify(simplifiedBatch, null, 2)}
                 <input type="file" ref={importFileRef} accept=".json,.zip" onChange={handleImportProject} className="hidden" />
                 <button onClick={handleTriggerImport} className="p-2 rounded hover:bg-white/10 border border-transparent hover:border-white/10 transition-all" title="Import Project"><FolderOpen size={20}/></button>
                 <button onClick={() => handleExport('json')} className="p-2 rounded hover:bg-white/10 border border-transparent hover:border-white/10 transition-all" title="Download Backup (.json)"><Download size={20}/></button>
-                <button onClick={handleExportPDF} className="p-2 rounded hover:bg-white/10 border border-transparent hover:border-white/10 transition-all text-blue-400 hover:text-blue-300" title="Export PDF"><Printer size={20}/></button>
+                <button onClick={handleExportPDF} className="hidden 2xl:flex p-2 rounded hover:bg-white/10 border border-transparent hover:border-white/10 transition-all text-blue-400 hover:text-blue-300" title="Export PDF"><Printer size={20}/></button>
                 <button onClick={handleManualSave} className="p-2 rounded hover:bg-white/10 border border-transparent hover:border-white/10 transition-all" title="Save Project">
                     {saveStatus === 'saved' ? <Check size={20} className="text-green-400"/> : saveStatus === 'saving' ? <Loader2 size={20} className="animate-spin"/> : <Save size={20}/>}
                 </button>
@@ -6624,7 +6624,7 @@ ${JSON.stringify(simplifiedBatch, null, 2)}
                 <button onClick={handleRedo} disabled={historyStack.future.length === 0} className="p-2 rounded hover:bg-white/10 border border-transparent hover:border-white/10 transition-all disabled:opacity-30 disabled:hover:bg-transparent" title="Redo (Ctrl+Shift+Z)"><Redo size={18}/></button>
                 <button onClick={() => setShowHistory(true)} className="hidden 2xl:flex p-2 rounded hover:bg-white/10 border border-transparent hover:border-white/10 transition-all" title="History"><History size={20}/></button>
                 <button onClick={() => setShowSavedScenes(true)} className="hidden 2xl:flex p-2 rounded hover:bg-white/10 border border-transparent hover:border-white/10 transition-all" title="Saved Scenes"><Bookmark size={20}/></button>
-                <button onClick={() => setShowResources(true)} className="hidden xl:flex p-2 rounded hover:bg-white/10 border border-transparent hover:border-white/10 transition-all text-green-400 hover:text-green-300" title="External Resources"><LinkIcon size={20}/></button>
+                <button onClick={() => setShowResources(true)} className="hidden 2xl:flex p-2 rounded hover:bg-white/10 border border-transparent hover:border-white/10 transition-all text-green-400 hover:text-green-300" title="External Resources"><LinkIcon size={20}/></button>
                 <button 
                   onClick={() => { setShowSettings(true); setSettingsTab('billing'); }} 
                   className={`p-2 rounded border transition-all ${
