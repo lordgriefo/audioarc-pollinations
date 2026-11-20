@@ -115,6 +115,47 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 }
 
 
+// --- Pollinations Pay One-Click Connect Component ---
+const PolliConnectWrapper: React.FC<{
+  onKeyChange: (key: string) => void;
+}> = ({ onKeyChange }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    container.innerHTML = '';
+    const el = document.createElement('polli-connect');
+    el.setAttribute('budget', '10');
+    el.setAttribute('expiry', '7');
+    el.setAttribute('models', 'text,image');
+    el.setAttribute('permissions', 'profile,usage');
+
+    const handleChange = () => {
+      const k = (el as any).apiKey;
+      if (k) {
+        onKeyChange(k);
+      } else {
+        onKeyChange('');
+      }
+    };
+
+    el.addEventListener('change', handleChange);
+    container.appendChild(el);
+
+    if ((el as any).apiKey) {
+      onKeyChange((el as any).apiKey);
+    }
+
+    return () => {
+      el.removeEventListener('change', handleChange);
+      container.innerHTML = '';
+    };
+  }, [onKeyChange]);
+
+  return <div ref={containerRef} className="inline-flex items-center text-xs ml-1" />;
+};
+
 // --- Interfaces ---
 export interface ScenePrompt {
   id: string; 
@@ -3716,7 +3757,7 @@ One-sentence scene summary:`;
             }
         }
     }
-  }, [showSettings, provider, settingsTab, openRouterKey, openAIKey, lmStudioUrl, pollinationsUrl]);
+  }, [showSettings, provider, settingsTab, openRouterKey, openAIKey, lmStudioUrl, pollinationsUrl, pollinationsApiKey]);
   
   const handleGenerateScript = async () => {
     if (!storyboard) return;
@@ -6485,7 +6526,7 @@ ${JSON.stringify(simplifiedBatch, null, 2)}
                 {showFloatingAnimatic && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />}
               </button>
             )}
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               <HeaderConnectionStatus
                 provider={provider}
                 connectionStatus={connectionStatus}
@@ -6508,6 +6549,12 @@ ${JSON.stringify(simplifiedBatch, null, 2)}
                 onTestConnection={() => handleTestConnection(provider)}
                 isTestingConnection={testStatuses[provider] === 'testing'}
               />
+              <PolliConnectWrapper onKeyChange={(k) => {
+                setPollinationsApiKey(k);
+                try {
+                  localStorage.setItem('audioarc_pollinations_key', k);
+                } catch {}
+              }} />
             </div>
         </div>
         <div className="flex items-center gap-4">
@@ -8705,8 +8752,15 @@ The old city. The weeping wall. Let's all go and remember.
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div>
-                                            <label className="block text-xs font-bold text-gray-400 mb-1">API Key (Optional)</label>
-                                            <input type="password" placeholder="Optional key for higher limits" value={pollinationsApiKey} onChange={e=>setPollinationsApiKey(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm outline-none focus:border-white/30 transition-colors"/>
+                                            <label className="block text-xs font-bold text-gray-400 mb-1">API Key (Optional / Pollinations Pay)</label>
+                                            <input type="password" placeholder="Optional sk_... key" value={pollinationsApiKey} onChange={e=>{
+                                                const v = e.target.value;
+                                                setPollinationsApiKey(v);
+                                                try { localStorage.setItem('audioarc_pollinations_key', v); } catch {}
+                                            }} className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm outline-none focus:border-white/30 transition-colors"/>
+                                            <p className="text-[10px] text-gray-400 mt-1">
+                                                Zero configuration needed for free models. Click <strong>Connect</strong> in the top header for 1-click GitHub access to Gemini & paid models.
+                                            </p>
                                         </div>
                                         <div>
                                             <div className="flex justify-between items-center mb-1">
