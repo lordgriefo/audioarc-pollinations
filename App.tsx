@@ -1,6 +1,6 @@
 
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { 
   Type, 
   generateContentServer, 
@@ -429,6 +429,108 @@ const generateLrcContent = (
   return [...headerLines, ...lrcRows].join('\n');
 };
 
+export interface LyricSegment {
+  id: number;
+  start: number;
+  end: number;
+  text: string;
+}
+
+export const parseLrcOrSrt = (raw: string): { plainText: string; segments: LyricSegment[] } => {
+  if (!raw || typeof raw !== 'string') return { plainText: '', segments: [] };
+
+  const lines = raw.split(/\r?\n/);
+  const lrcMatches: { t: number; text: string }[] = [];
+  const srtSegments: LyricSegment[] = [];
+
+  const LRC_RE = /\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?\]\s*(.*)/;
+  const SRT_TIME_RE = /(\d{2}):(\d{2}):(\d{2})[,.](\d{1,3})\s*-->\s*(\d{2}):(\d{2}):(\d{2})[,.](\d{1,3})/;
+
+  let isSrt = false;
+  let currentSrtStart = 0;
+  let currentSrtEnd = 0;
+  let currentSrtText: string[] = [];
+  let srtIdx = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    const srtMatch = line.match(SRT_TIME_RE);
+    if (srtMatch) {
+      isSrt = true;
+      if (currentSrtText.length > 0) {
+        srtSegments.push({
+          id: srtIdx++,
+          start: currentSrtStart,
+          end: currentSrtEnd,
+          text: currentSrtText.join(' ').trim()
+        });
+        currentSrtText = [];
+      }
+      const sh = parseInt(srtMatch[1], 10), sm = parseInt(srtMatch[2], 10), ss = parseInt(srtMatch[3], 10), sms = parseInt(srtMatch[4].padEnd(3, '0'), 10);
+      const eh = parseInt(srtMatch[5], 10), em = parseInt(srtMatch[6], 10), es = parseInt(srtMatch[7], 10), ems = parseInt(srtMatch[8].padEnd(3, '0'), 10);
+      currentSrtStart = sh * 3600 + sm * 60 + ss + sms / 1000;
+      currentSrtEnd = eh * 3600 + em * 60 + es + ems / 1000;
+      continue;
+    }
+
+    if (isSrt) {
+      if (/^\d+$/.test(line)) continue;
+      if (line === '') {
+        if (currentSrtText.length > 0) {
+          srtSegments.push({
+            id: srtIdx++,
+            start: currentSrtStart,
+            end: currentSrtEnd,
+            text: currentSrtText.join(' ').trim()
+          });
+          currentSrtText = [];
+        }
+      } else {
+        currentSrtText.push(line);
+      }
+      continue;
+    }
+
+    const lrcMatch = line.match(LRC_RE);
+    if (lrcMatch) {
+      const mins = parseInt(lrcMatch[1], 10);
+      const secs = parseInt(lrcMatch[2], 10);
+      const ms = lrcMatch[3] ? parseInt(lrcMatch[3].padEnd(3, '0'), 10) : 0;
+      const t = mins * 60 + secs + ms / 1000;
+      const text = lrcMatch[4].trim();
+      if (text) {
+        lrcMatches.push({ t, text });
+      }
+    }
+  }
+
+  if (isSrt) {
+    if (currentSrtText.length > 0) {
+      srtSegments.push({
+        id: srtIdx++,
+        start: currentSrtStart,
+        end: currentSrtEnd,
+        text: currentSrtText.join(' ').trim()
+      });
+    }
+    const plain = srtSegments.map(s => s.text).join('\n');
+    return { plainText: plain, segments: srtSegments };
+  }
+
+  if (lrcMatches.length > 0) {
+    lrcMatches.sort((a, b) => a.t - b.t);
+    const segs: LyricSegment[] = lrcMatches.map((item, idx) => ({
+      id: idx,
+      start: item.t,
+      end: lrcMatches[idx + 1] ? lrcMatches[idx + 1].t : item.t + 4,
+      text: item.text
+    }));
+    return { plainText: raw, segments: segs };
+  }
+
+  return { plainText: raw, segments: [] };
+};
+
 const getWunderbarInfoText = () => {
   return `================================================================================
 WUNDERBAR! - Free AI Prompt Variations & Slideshow Video Tool
@@ -693,6 +795,7 @@ export const App: React.FC = () => {
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const importFileRef = useRef<HTMLInputElement | null>(null);
+  const lyricsFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // App State
   const [loading, setLoading] = useState<boolean>(false);
@@ -2525,6 +2628,64 @@ Keys: "lyric", "description", "imagePrompt", "videoPrompts", "soraPrompt", "grou
     } finally {
         setIsAnalyzingAudio(false);
     }
+  };
+
+  const hasLrcOrSrtTimestamps = useMemo(() => {
+    return /\[\d{1,2}:\d{2}/.test(lyrics) || /\d{2}:\d{2}:\d{2}[,.]\d{1,3}\s*-->/.test(lyrics);
+  }, [lyrics]);
+
+  const handleLyricsFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      if (!content) return;
+      setLyrics(content);
+      const parsed = parseLrcOrSrt(content);
+      if (parsed.segments.length > 0) {
+        setNotification(`Loaded ${file.name} with ${parsed.segments.length} timestamped lines. Click 'Sync Timed Scenes' to generate storyboard!`);
+        setTimeout(() => setNotification(null), 5000);
+      } else {
+        setNotification(`Imported text from ${file.name}`);
+        setTimeout(() => setNotification(null), 3000);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const handleSyncStoryboardFromLrc = () => {
+    const parsed = parseLrcOrSrt(lyrics);
+    if (parsed.segments.length === 0) {
+      setNotification("No timestamped lines (LRC [mm:ss] or SRT) found in the lyrics text.");
+      setTimeout(() => setNotification(null), 3000);
+      return;
+    }
+    pushToHistory();
+    const style = VISUAL_STYLES.find(s => s.id === selectedStyleId) || VISUAL_STYLES[0];
+    const newScenes: ScenePrompt[] = parsed.segments.map((seg, idx) => {
+      const segDur = Math.max(1, Math.round((seg.end - seg.start) * 10) / 10);
+      return {
+        id: `scene-${Date.now()}-${idx}`,
+        lyric: seg.text,
+        description: `Visual for: ${seg.text}`,
+        imagePrompt: `${seg.text}, ${style.visualDetails}, cinematic lighting, 8k resolution`,
+        videoPrompts: [
+          `Subtle atmospheric camera drift on ${seg.text}`,
+          `Dynamic camera movement across the scene for ${seg.text}`,
+          `Stylistic cinematic lens motion reflecting ${seg.text}`
+        ],
+        soraPrompt: `Cinematic wide shot matching: ${seg.text}. ${style.name} visual style, high production quality.`,
+        duration: segDur,
+        startTime: formatTime(seg.start),
+        endTime: formatTime(seg.end),
+        groupName: idx === 0 ? 'Intro' : `Scene ${idx + 1}`
+      };
+    });
+    setStoryboard(newScenes);
+    setNotification(`Successfully created ${newScenes.length} scenes synchronized to your timestamps!`);
+    setTimeout(() => setNotification(null), 4000);
   };
 
   const handleSnapToBeats = (options?: SnapToBeatsOptions) => {
@@ -6916,37 +7077,57 @@ ${JSON.stringify(simplifiedBatch, null, 2)}
 
             <div className={`md:col-span-4 flex flex-col gap-4 ${mobileActiveTab === 'editor' ? 'flex' : 'hidden md:flex'}`}>
                 <div className="bg-[#121212] border border-white/10 rounded-xl p-1 flex flex-col shadow-2xl relative group shrink-0">
-                    <div className="bg-white/5 px-4 py-3 rounded-t-lg flex justify-between items-center border-b border-white/5">
-                        <label className="text-sm font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2"> <FileText size={16} className="text-blue-500"/> Script / Lyrics </label>
-                        <button onClick={()=>{const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([lyrics])); a.download='lyrics.txt'; a.click();}} className="text-[10px] text-gray-500 hover:text-white flex gap-1 items-center transition-colors"><Save size={12}/> Save</button>
+                    <div className="bg-white/5 px-4 py-2.5 rounded-t-lg flex flex-wrap justify-between items-center gap-2 border-b border-white/5">
+                        <label className="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5"> 
+                            <FileText size={15} className="text-blue-500"/> Script / Lyrics / SRT / LRC
+                        </label>
+                        <div className="flex items-center gap-2">
+                            <input 
+                                type="file" 
+                                ref={lyricsFileInputRef} 
+                                accept=".lrc,.srt,.txt,.json" 
+                                onChange={handleLyricsFileUpload} 
+                                className="hidden" 
+                            />
+                            <button 
+                                onClick={() => lyricsFileInputRef.current?.click()} 
+                                className="px-2 py-1 text-[11px] font-medium bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/30 rounded flex items-center gap-1 transition-colors"
+                                title="Import an .lrc, .srt, or .txt lyric file"
+                            >
+                                <Upload size={12}/> Import File
+                            </button>
+                            {hasLrcOrSrtTimestamps && (
+                                <button 
+                                    onClick={handleSyncStoryboardFromLrc}
+                                    className="px-2 py-1 text-[11px] font-medium bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 rounded flex items-center gap-1 transition-colors animate-pulse"
+                                    title="Generate storyboard scenes synced directly to the timestamps in your lyrics"
+                                >
+                                    <Clock size={12}/> Sync Timed Scenes
+                                </button>
+                            )}
+                            <button 
+                                onClick={()=>{
+                                    const a=document.createElement('a'); 
+                                    a.href=URL.createObjectURL(new Blob([lyrics])); 
+                                    a.download=lyrics.includes('-->') ? 'subtitles.srt' : lyrics.includes('[0') ? 'lyrics.lrc' : 'lyrics.txt'; 
+                                    a.click();
+                                }} 
+                                className="text-[11px] text-gray-400 hover:text-white flex gap-1 items-center transition-colors px-1.5 py-1"
+                                title="Save lyrics to file"
+                            >
+                                <Save size={12}/> Save
+                            </button>
+                        </div>
                     </div>
-                    <textarea className="w-full bg-[#0a0a0a] rounded-b-lg p-4 text-sm mono-font outline-none resize-none focus:bg-black transition-colors text-gray-300 placeholder-gray-700 custom-scrollbar leading-relaxed" rows={20} placeholder={`[Intro]
-*vinyl crackle*
-[Mood: Excitement/Anticipation]
-[Instrument: Muted Trumpet]
+                    <textarea className="w-full bg-[#0a0a0a] rounded-b-lg p-4 text-sm mono-font outline-none resize-none focus:bg-black transition-colors text-gray-300 placeholder-gray-700 custom-scrollbar leading-relaxed" rows={20} placeholder={`Paste your plain lyrics, LRC ([00:25.00] line), or SRT subtitles here...
 
-[SFX: *A distant train horn*]
+Or click "Import File" above to load an .lrc, .srt, or .txt file directly.
 
-[Sample, a man speaking softly]
-"Le rendez-vous, dans la vieille ville. N'oublie pas, j'y serai."
-[SFX: *old metro brake squeal*]
-
-[Verse 1]
-[Instrument: Theremin Glissando]
-[Vocalist: Male, Vocal Tone: Smoky Baritone]
-I've just been wasting time, since I've said my peace
-I've fallen behind, but I haven't fallen asleep
-I can see that we're still playing strangers here
-The old city. The weeping wall. Let's all go and remember.
-[SFX: *footsteps on concrete*]
-
-[Instrumental Buildup]
-[Instruments: Fender Rhodes, Upright Bass, Viola]
-
-[Sample, a woman talking on the phone]
-"N'oublie pas notre heure, la vieille cité. Je t'attends."
-[Drop]
-[SFX: *digital alarm clock buzz*]`} value={lyrics} onChange={e => setLyrics(e.target.value)} />
+Example:
+[00:00.00] [Intro / Music]
+[00:25.00] When you get everything right
+[00:26.50] Nothing's breaking down
+[00:28.00] Live around in one hand`} value={lyrics} onChange={e => setLyrics(e.target.value)} />
                 </div>
 
                 <div className="bg-[#121212] border border-white/10 rounded-xl p-1 flex flex-col shadow-lg shrink-0">
