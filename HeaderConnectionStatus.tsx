@@ -220,14 +220,14 @@ export const HeaderConnectionStatus: React.FC<HeaderConnectionStatusProps> = ({
         </div>
 
         {/* Active Model Name */}
-        <div className="hidden lg:flex items-center">
+        <div className="hidden 2xl:flex items-center">
           <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-black/40 text-gray-300 border border-white/5 max-w-[130px] truncate">
             {config.activeModelDisplay}
           </span>
         </div>
 
         {/* Image Engine Pill */}
-        <div className="hidden xl:flex items-center">
+        <div className="hidden 2xl:flex items-center">
           <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-purple-950/40 text-purple-300 border border-purple-500/20 truncate max-w-[110px]">
             {getImageModelDisplay()}
           </span>

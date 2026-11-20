@@ -126,10 +126,13 @@ const PolliConnectWrapper: React.FC<{
     if (!container) return;
     container.innerHTML = '';
     const el = document.createElement('polli-connect');
+    el.className = 'dark';
     el.setAttribute('budget', '10');
     el.setAttribute('expiry', '7');
     el.setAttribute('models', 'text,image');
     el.setAttribute('permissions', 'profile,usage');
+    el.style.setProperty('--polli-color-text-strong', '#ffffff');
+    el.style.setProperty('--polli-color-bg', 'rgba(236, 72, 153, 0.2)');
 
     const handleChange = () => {
       const k = (el as any).apiKey;
@@ -6619,9 +6622,9 @@ ${JSON.stringify(simplifiedBatch, null, 2)}
                 </button>
                 <button onClick={handleUndo} disabled={historyStack.past.length === 0} className="p-2 rounded hover:bg-white/10 border border-transparent hover:border-white/10 transition-all disabled:opacity-30 disabled:hover:bg-transparent" title="Undo (Ctrl+Z)"><Undo size={18}/></button>
                 <button onClick={handleRedo} disabled={historyStack.future.length === 0} className="p-2 rounded hover:bg-white/10 border border-transparent hover:border-white/10 transition-all disabled:opacity-30 disabled:hover:bg-transparent" title="Redo (Ctrl+Shift+Z)"><Redo size={18}/></button>
-                <button onClick={() => setShowHistory(true)} className="p-2 rounded hover:bg-white/10 border border-transparent hover:border-white/10 transition-all" title="History"><History size={20}/></button>
-                <button onClick={() => setShowSavedScenes(true)} className="p-2 rounded hover:bg-white/10 border border-transparent hover:border-white/10 transition-all" title="Saved Scenes"><Bookmark size={20}/></button>
-                <button onClick={() => setShowResources(true)} className="p-2 rounded hover:bg-white/10 border border-transparent hover:border-white/10 transition-all text-green-400 hover:text-green-300" title="External Resources"><LinkIcon size={20}/></button>
+                <button onClick={() => setShowHistory(true)} className="hidden 2xl:flex p-2 rounded hover:bg-white/10 border border-transparent hover:border-white/10 transition-all" title="History"><History size={20}/></button>
+                <button onClick={() => setShowSavedScenes(true)} className="hidden 2xl:flex p-2 rounded hover:bg-white/10 border border-transparent hover:border-white/10 transition-all" title="Saved Scenes"><Bookmark size={20}/></button>
+                <button onClick={() => setShowResources(true)} className="hidden xl:flex p-2 rounded hover:bg-white/10 border border-transparent hover:border-white/10 transition-all text-green-400 hover:text-green-300" title="External Resources"><LinkIcon size={20}/></button>
                 <button 
                   onClick={() => { setShowSettings(true); setSettingsTab('billing'); }} 
                   className={`p-2 rounded border transition-all ${
