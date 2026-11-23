@@ -928,7 +928,9 @@ export const App: React.FC = () => {
   const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [characterModalName, setCharacterModalName] = useState('');
   const [characterModalDesc, setCharacterModalDesc] = useState('');
+  const [characterModalImage, setCharacterModalImage] = useState('');
   const [isAutoDescribing, setIsAutoDescribing] = useState(false);
+  const [isGeneratingCharacterPortrait, setIsGeneratingCharacterPortrait] = useState(false);
   const [activeRemixMenu, setActiveRemixMenu] = useState<{sceneIdx: number, promptIdx: number} | null>(null);
   const [activeLinkMenu, setActiveLinkMenu] = useState<string | null>(null);
   const [animaticProgress, setAnimaticProgress] = useState({ percent: 0, status: '' });
@@ -4842,14 +4844,63 @@ Note: "category" must be one of: "lighting", "camera", "color", "motion", "aesth
     }
   };
 
+  const handleGenerateCharacterPortrait = async (providerChoice: 'pollinations' | 'perchance') => {
+    if (!characterModalName && !characterModalDesc) {
+      setErrorMessage("Please enter a character name or visual description first.");
+      return;
+    }
+    const cleanName = characterModalName.trim() || 'Character';
+    const cleanDesc = characterModalDesc.trim() || 'cinematic portrait';
+    const prompt = `Cinematic character portrait of ${cleanName}, ${cleanDesc}, 8k, detailed facial features, character concept art, striking lighting, neutral background, 50mm portrait lens, photorealistic, cinematic continuity`;
+
+    if (providerChoice === 'perchance') {
+      const url = `https://perchance.org/ai-text-to-image-generator#prompt=${encodeURIComponent(prompt)}`;
+      window.open(url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    setIsGeneratingCharacterPortrait(true);
+    try {
+      const seed = Math.floor(Math.random() * 9999999);
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=768&height=768&nologo=true&seed=${seed}`;
+      
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Image service HTTP ${res.status}`);
+      const blob = await res.blob();
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setCharacterModalImage(base64);
+        setIsGeneratingCharacterPortrait(false);
+      };
+      reader.readAsDataURL(blob);
+    } catch (e: any) {
+      console.warn("Pollinations direct fetch fallback to URL:", e);
+      const seed = Math.floor(Math.random() * 9999999);
+      setCharacterModalImage(`https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=768&height=768&nologo=true&seed=${seed}`);
+      setIsGeneratingCharacterPortrait(false);
+    }
+  };
+
+  const handleCharacterImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      if (base64) setCharacterModalImage(base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSaveCharacter = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!characterModalName || !characterModalDesc) return;
+    if (!characterModalName) return;
     const newCharacter: VisualReference = {
       id: generateUUID(),
       name: characterModalName,
-      description: characterModalDesc,
-      image: '', // This signifies a text-only character
+      description: characterModalDesc || "Custom character reference",
+      image: characterModalImage || '',
       analyzing: false,
     };
     const newRefs = [newCharacter, ...visualRefs];
@@ -4858,6 +4909,7 @@ Note: "category" must be one of: "lighting", "camera", "color", "motion", "aesth
     setShowCharacterCreator(false);
     setCharacterModalName('');
     setCharacterModalDesc('');
+    setCharacterModalImage('');
   };
 
   const handleExecuteQuickSwap = async (config: QuickSwapConfig) => {
@@ -10747,21 +10799,97 @@ Example:
 
       {showCharacterCreator && (
         <div className="fixed inset-0 z-[101] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in" onClick={() => setShowCharacterCreator(false)}>
-          <form onSubmit={handleSaveCharacter} className="bg-[#1a1a1a] border border-teal-500/30 rounded-xl shadow-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2"><UserPlus size={20} className="text-teal-400"/> Character Continuity</h3>
+          <form onSubmit={handleSaveCharacter} className="bg-[#1a1a1a] border border-teal-500/30 rounded-xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-white mb-5 flex items-center gap-2"><UserPlus size={20} className="text-teal-400"/> Character Continuity Studio</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Character Name</label>
-                <input type="text" value={characterModalName} onChange={e => setCharacterModalName(e.target.value)} placeholder="e.g., 'The Protagonist'" className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm outline-none focus:border-teal-500/50" required />
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Character Name</label>
+                <input type="text" value={characterModalName} onChange={e => setCharacterModalName(e.target.value)} placeholder="e.g., 'Elena - Cyber Detective'" className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm outline-none focus:border-teal-500/50" required />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex justify-between">Visual Description <button type="button" onClick={handleAutoDescribeCharacter} disabled={isAutoDescribing || !characterModalName} className="text-[10px] text-teal-400 hover:text-teal-300 disabled:opacity-50 flex items-center gap-1">{isAutoDescribing ? <Loader2 size={10} className="animate-spin"/> : <Sparkles size={10}/>} Generate Bio</button></label>
-                <textarea value={characterModalDesc} onChange={e => setCharacterModalDesc(e.target.value)} placeholder="Describe their appearance, clothing, and features..." className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm outline-none focus:border-teal-500/50 h-32 resize-none" />
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-1 flex justify-between">Visual Description <button type="button" onClick={handleAutoDescribeCharacter} disabled={isAutoDescribing || !characterModalName} className="text-[10px] text-teal-400 hover:text-teal-300 disabled:opacity-50 flex items-center gap-1">{isAutoDescribing ? <Loader2 size={10} className="animate-spin"/> : <Sparkles size={10}/>} Generate Bio</button></label>
+                <textarea value={characterModalDesc} onChange={e => setCharacterModalDesc(e.target.value)} placeholder="Describe their appearance, age, hair, eye color, wardrobe, and distinctive features for consistent visuals..." className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm outline-none focus:border-teal-500/50 h-24 resize-none custom-scrollbar" />
+              </div>
+
+              {/* Character Portrait & Visual Generator */}
+              <div className="bg-black/30 border border-white/10 rounded-xl p-3.5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-300 uppercase tracking-wide flex items-center gap-1.5">
+                    <ImageIcon size={14} className="text-cyan-400"/> Visual Portrait Reference
+                  </label>
+                  <span className="text-[10px] text-gray-500">Pollinations & Perchance AI</span>
+                </div>
+
+                <div className="flex gap-4 items-center">
+                  <div className="w-24 h-24 rounded-lg border border-white/10 bg-black/50 overflow-hidden shrink-0 flex items-center justify-center relative group">
+                    {characterModalImage ? (
+                      <>
+                        <img src={characterModalImage} alt="Portrait" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setCharacterModalImage('')}
+                          className="absolute top-1 right-1 bg-red-600/80 hover:bg-red-600 text-white rounded p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Remove image"
+                        >
+                          <X size={12} />
+                        </button>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-gray-600 gap-1 p-2 text-center">
+                        <User size={28} className="opacity-40" />
+                        <span className="text-[8px] uppercase tracking-tighter opacity-50">No Portrait</span>
+                      </div>
+                    )}
+                    {isGeneratingCharacterPortrait && (
+                      <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-1.5 text-white text-[9px]">
+                        <Loader2 size={16} className="animate-spin text-cyan-400" />
+                        <span>Generating...</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleGenerateCharacterPortrait('pollinations')}
+                        disabled={isGeneratingCharacterPortrait || (!characterModalName && !characterModalDesc)}
+                        className="flex-1 py-1.5 px-3 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md disabled:opacity-40 transition-all"
+                        title="Generate free instant portrait via Pollinations.ai"
+                      >
+                        {isGeneratingCharacterPortrait ? <Loader2 size={12} className="animate-spin"/> : <Sparkles size={12}/>}
+                        {characterModalImage ? 'Reroll via Pollinations' : 'Generate via Pollinations'}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleGenerateCharacterPortrait('perchance')}
+                        disabled={!characterModalName && !characterModalDesc}
+                        className="flex-1 py-1.5 px-3 rounded-lg bg-purple-900/30 border border-purple-500/40 hover:bg-purple-900/50 text-purple-300 text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-40 transition-colors"
+                        title="Open character concept in Perchance AI Text-to-Image Generator"
+                      >
+                        <Sparkles size={12} className="text-purple-400"/>
+                        Open in Perchance AI
+                      </button>
+
+                      <label className="py-1.5 px-3 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shrink-0">
+                        <Upload size={12}/>
+                        <span>Upload</span>
+                        <input type="file" accept="image/*" onChange={handleCharacterImageUpload} className="hidden" />
+                      </label>
+                    </div>
+                    <p className="text-[10px] text-gray-500 leading-tight">
+                      Generates character reference portraits that automatically link to your storyboard scenes and Master Production Bible PDF.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="flex justify-end gap-3 mt-8">
-              <button type="button" onClick={() => setShowCharacterCreator(false)} className="px-6 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white font-bold transition-colors">Cancel</button>
-              <button type="submit" className="px-6 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-bold transition-colors">Save Character</button>
+            <div className="flex justify-end gap-3 mt-6">
+              <button type="button" onClick={() => { setShowCharacterCreator(false); setCharacterModalImage(''); }} className="px-5 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white font-bold text-sm transition-colors">Cancel</button>
+              <button type="submit" className="px-5 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm transition-colors">Save Character</button>
             </div>
           </form>
         </div>

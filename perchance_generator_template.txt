@@ -1,0 +1,1554 @@
+================================================================================
+AUDIOARC PERCHANCE EDITION - READY-TO-PASTE GENERATOR TEMPLATE
+================================================================================
+
+How to deploy on Perchance (takes 60 seconds):
+1. Go to: https://perchance.org/create (or https://perchance.org/audioarc)
+2. You will see two panels in the editor:
+   - The LEFT panel is the "Lists" panel (Perchance logic & lists)
+   - The RIGHT/BOTTOM panel is the "HTML" panel (UI layout & styling)
+3. Paste SECTION 1 into the LEFT panel.
+4. Paste SECTION 2 into the RIGHT (HTML) panel.
+5. Click "Save" in the top bar. Your generator is now LIVE at perchance.org/<your-chosen-name>!
+
+================================================================================
+SECTION 1: PASTE THIS IN THE LEFT (LISTS) PANEL
+================================================================================
+
+title = AudioArc: AI Music Video & Sora Scene Director
+ai = {import:ai-text-plugin}
+
+// -------------------------------------------------------------
+// Visual Styles
+// -------------------------------------------------------------
+visualStyle
+  Cinematic 35mm Film (Grainy Kodak Vision3 500T, anamorphic lens flare, shallow depth of field)
+  Neo-Noir Cyberpunk (Vibrant neon reflections, wet rain-slicked asphalt, high contrast chiaroscuro)
+  Vintage Kodachrome 1970s (Warm nostalgic saturation, soft halation, vintage optics, analog patina)
+  Surrealist Dreamscape (Melting horizons, hypnotic lighting, non-Euclidean perspective, ethereal atmosphere)
+  Anime Cinematic / Makoto Shinkai (Lush volumetric clouds, golden hour sunset rays, photorealistic anime textures)
+  Dark Gothic Fantasy (Moody candlelight, baroque architecture, brooding mist, heavy shadow vignettes)
+  A24 Folk Horror (Sun-bleached natural daylight, pastel florals, unsettling symmetry, handheld tactile camera)
+  French New Wave 1960s (Monochrome black and white, jump-cut kineticism, street realism, natural breeze)
+
+// -------------------------------------------------------------
+// Director & Aesthetic Influences
+// -------------------------------------------------------------
+influence
+  David Lynch (Eerie uncanny valley, hypnotic slow pans, red curtains, industrial drone, flickering light)
+  Wes Anderson (Rigid symmetrical framing, pastel color palettes, flat perspective, whip pans, quirky staging)
+  Denis Villeneuve (Monumental monolithic scale, brutalist architecture, sweeping aerial vistas, atmospheric fog)
+  Wong Kar-wai (Step-printed slow shutter blur, neon greens and smoky reds, melancholic longing, framed reflections)
+  Guillermo del Toro (Clockwork mechanics, amber and cobalt contrasts, ornate creatures, bioluminescent glow)
+  Stanley Kubrick (One-point central perspective, hypnotic tracking shots, cold sterile grandeur, dramatic tension)
+  Hype Williams (Extreme fish-eye lens, hyper-glossy reflections, high-fashion styling, saturated primary colors)
+
+// -------------------------------------------------------------
+// Camera Movements
+// -------------------------------------------------------------
+cameraMovement
+  Slow cinematic dolly push-in toward subject with shallow depth of field
+  Dynamic 360-degree orbital tracking shot keeping the subject centered
+  Sweeping crane jib rise starting low at feet and ascending into an overhead bird's-eye perspective
+  Handheld tactile documentary follow shot with natural micro-shakes and organic momentum
+  Whip pan transition snapping from the character's reaction to the surrounding environment
+  Low-angle Dutch tilt creeping forward with dramatic floor shadows
+  Anamorphic rack focus shifting from raindrops in the foreground to the emotional subject in the background
+
+// -------------------------------------------------------------
+// Film Stock & Optics
+// -------------------------------------------------------------
+filmStock
+  Shot on 35mm Kodak Vision3 500T, Cooke Anamorphic/i prime lenses, organic fine grain
+  Shot on 16mm Arri SR3, vintage Zeiss Super Speed T1.3 lenses, warm halation and texture
+  Shot on IMAX 70mm, Hasselblad medium format glass, razor-sharp edge-to-edge cinematic clarity
+  Shot on Vintage Super 8mm analog reel, light leaks, vignette, dust and gate weave
+
+// -------------------------------------------------------------
+// Sora Video Prompt Generator Rule
+// -------------------------------------------------------------
+soraDirective
+  Cinematic high-fidelity video clip. Natural lifelike movement with authentic facial expressions, subtle gaze shifts, and realistic physical weight. The camera executes a smooth camera move with accurate physical lighting and zero digital artifacting.
+
+output
+  [title]
+
+================================================================================
+SECTION 2: PASTE THIS IN THE RIGHT (HTML) PANEL
+================================================================================
+
+<!-- jsPDF Library for Master Production Bible PDF Export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<div class="audioarc-container">
+  <!-- Header -->
+  <header class="header">
+    <div class="logo-group">
+      <span class="icon">🎬</span>
+      <div>
+        <h1>AudioArc</h1>
+        <p class="subtitle">Perchance Edition • AI Filmmaking Studio & Master Production Bible</p>
+      </div>
+    </div>
+    <div class="badges-row">
+      <span class="badge badge-gemini">✨ Gemini 3.8 Flash</span>
+      <span class="badge badge-pollinations">🌸 Pollinations.ai</span>
+      <span class="badge badge-pdf">📑 Master Bible PDF</span>
+    </div>
+  </header>
+
+  <!-- Google Gemini AI Studio Integration Panel -->
+  <div class="card card-gemini">
+    <div class="card-header-row">
+      <div class="flex-align-center gap-8">
+        <span class="gemini-sparkle">✨</span>
+        <div>
+          <h2 class="card-title">Google Gemini AI Engine</h2>
+          <p class="card-subtitle">Connect your Google Gemini key for intelligent screenplay analysis and deep cinematic scene directing</p>
+        </div>
+      </div>
+      <div id="geminiStatusBadge" class="status-pill status-pill-offline">● No Key (Procedural Mode)</div>
+    </div>
+
+    <div class="grid-2 mt-12">
+      <div class="input-group">
+        <div class="label-row">
+          <label>🔑 Google Gemini API Key</label>
+          <a href="https://aistudio.google.com/docs/get-started" target="_blank" rel="noopener noreferrer" class="link-external">Get Free Key ↗</a>
+        </div>
+        <div class="password-wrapper">
+          <input type="password" id="geminiApiKey" placeholder="Paste your AI Studio API key (AIza...)" onchange="saveGeminiKey(this.value)">
+          <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('geminiApiKey')">👁️</button>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>🧠 Gemini Model</label>
+        <select id="geminiModel">
+          <option value="gemini-3.8-flash" selected>gemini-3.8-flash (Recommended · Ultra Fast & Free Tier)</option>
+          <option value="gemini-1.5-pro">gemini-1.5-pro (Deep Reasoning & Complex Arcs)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Song & Director Controls -->
+  <div class="card">
+    <div class="grid-2">
+      <div class="input-group">
+        <label>🎵 Song / Track Title</label>
+        <input type="text" id="trackTitle" value="Midnight Echoes" placeholder="Enter song title...">
+      </div>
+      <div class="input-group">
+        <label>⏱️ Track Duration (Seconds)</label>
+        <input type="number" id="trackDuration" value="60" min="10" max="600" step="1">
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="input-group">
+        <label>🎨 Visual Aesthetic</label>
+        <select id="styleSelect">
+          <option value="[visualStyle]">Randomize from Library ([visualStyle])</option>
+          <option value="Cinematic 35mm Film (Kodak Vision3 500T, anamorphic lenses)">Cinematic 35mm Film</option>
+          <option value="Neo-Noir Cyberpunk (Wet reflections, neon contrasts)">Neo-Noir Cyberpunk</option>
+          <option value="Vintage 1970s Kodachrome (Warm analog saturation)">Vintage 1970s Kodachrome</option>
+          <option value="Surrealist Dreamscape (Hypnotic lighting, non-Euclidean)">Surrealist Dreamscape</option>
+          <option value="Anime Cinematic / Makoto Shinkai (Golden hour, volumetric rays)">Anime Cinematic</option>
+          <option value="Dark Gothic Fantasy (Candlelight, baroque shadows)">Dark Gothic Fantasy</option>
+          <option value="A24 Folk Horror (Sun-bleached natural daylight, pastel florals)">A24 Folk Horror</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>🎭 Director Influence</label>
+        <select id="influenceSelect">
+          <option value="[influence]">Randomize Director ([influence])</option>
+          <option value="David Lynch (Eerie uncanny valley, hypnotic red curtains)">David Lynch</option>
+          <option value="Wes Anderson (Symmetrical framing, pastel colors)">Wes Anderson</option>
+          <option value="Denis Villeneuve (Monumental scale, brutalist architecture)">Denis Villeneuve</option>
+          <option value="Wong Kar-wai (Step-printed slow shutter blur, neon reflections)">Wong Kar-wai</option>
+          <option value="Guillermo del Toro (Amber & cobalt contrast, ornate textures)">Guillermo del Toro</option>
+          <option value="Stanley Kubrick (One-point perspective, cold tracking shots)">Stanley Kubrick</option>
+          <option value="Hype Williams (Extreme fish-eye, high-gloss reflections)">Hype Williams</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <div class="label-row">
+        <label>📝 Lyrics / Script (or Musical Cues)</label>
+        <span class="hint">Paste lyrics or leave blank for dynamic instrumental cues</span>
+      </div>
+      <textarea id="lyricsInput" rows="5" placeholder="[Intro]
+Distant synth pads swell under city rain...
+
+[Verse 1]
+Walking past the neon signs
+Counting the cracks in the street lines
+I saw your reflection in the glass
+
+[Chorus]
+We break through the atmosphere
+Nothing left to lose from here!"></textarea>
+    </div>
+  </div>
+
+  <!-- Cast & Character Continuity Studio -->
+  <div class="card card-character">
+    <div class="card-header-row">
+      <div class="flex-align-center gap-8">
+        <span class="character-icon">👤</span>
+        <div>
+          <h2 class="card-title">Cast & Character Continuity Studio</h2>
+          <p class="card-subtitle">Build consistent characters with Text-to-Image powered by Pollinations & Perchance AI</p>
+        </div>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline" onclick="toggleCharacterForm()">+ Add Character</button>
+    </div>
+
+    <!-- Add Character Form (Collapsible) -->
+    <div id="characterFormContainer" class="character-form-container" style="display: none;">
+      <div class="grid-2">
+        <div class="input-group">
+          <label>👤 Character Name</label>
+          <input type="text" id="newCharName" placeholder="e.g., 'Elena - Cyber Detective'">
+        </div>
+        <div class="input-group">
+          <label>🎭 Role / Archetype</label>
+          <input type="text" id="newCharRole" placeholder="e.g., Protagonist, Antagonist, Silhouette">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>👗 Visual Appearance & Wardrobe</label>
+        <textarea id="newCharDesc" rows="2" placeholder="Age, facial structure, hair color/style, eye color, distinctive wardrobe, jacket textures, accessories..."></textarea>
+      </div>
+
+      <div class="portrait-preview-row">
+        <div class="portrait-box" id="newCharPortraitBox">
+          <span class="portrait-placeholder-icon">👤</span>
+          <img id="newCharPortraitImg" style="display: none;" alt="Portrait Preview">
+        </div>
+        <div class="portrait-actions">
+          <div class="button-row">
+            <button type="button" class="btn btn-sm btn-pollinations" onclick="generateCharacterPortraitPollinations()">
+              🎨 Generate Portrait (Pollinations.ai)
+            </button>
+            <button type="button" class="btn btn-sm btn-perchance" onclick="openCharacterInPerchance()">
+              🪄 Open in Perchance AI Image
+            </button>
+          </div>
+          <p class="hint mt-6">Instant free AI image generation for character continuity. Generates a 512x512 portrait reference embedded in your scenes and Master PDF.</p>
+        </div>
+      </div>
+
+      <div class="button-row mt-12">
+        <button type="button" class="btn btn-primary" onclick="saveNewCharacter()">
+          💾 Save Character to Cast
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="toggleCharacterForm()">
+          Cancel
+        </button>
+      </div>
+    </div>
+
+    <!-- Character Roster Cards -->
+    <div id="characterRoster" class="character-roster mt-12">
+      <!-- Populated dynamically -->
+      <div class="empty-roster-msg" id="emptyRosterMsg">
+        No characters created yet. Click <b>+ Add Character</b> to design cast members with AI portraits for scene continuity.
+      </div>
+    </div>
+  </div>
+
+  <!-- Master Action Controls -->
+  <div class="action-bar-card">
+    <div class="master-button-grid">
+      <button class="btn btn-gemini-action" onclick="generateWithGemini()">
+        ✨ Generate with Gemini AI
+      </button>
+      <button class="btn btn-primary" onclick="generateScenesProcedural()">
+        ⚡ Procedural Scene Slicer
+      </button>
+      <button class="btn btn-pdf-export" onclick="downloadMasterProductionNotesPDF()">
+        📑 Download Master Production Bible PDF
+      </button>
+      <button class="btn btn-secondary" onclick="randomizeAll()">
+        🎲 Randomize & Reroll
+      </button>
+      <button class="btn btn-outline" onclick="copyAllPrompts()">
+        📋 Copy All Prompts
+      </button>
+    </div>
+    <div id="generationStatus" class="generation-status-text" style="display: none;"></div>
+  </div>
+
+  <!-- Output Storyboard Stream -->
+  <div id="resultsContainer" class="results-container">
+    <div class="placeholder-box">
+      Click <b>✨ Generate with Gemini AI</b> or <b>⚡ Procedural Scene Slicer</b> above to build timed scenes and master cinematic prompts!
+    </div>
+  </div>
+</div>
+
+<style>
+  :root {
+    --bg-main: #0a0a0c;
+    --card-bg: #141418;
+    --card-border: #23232a;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --gemini-gradient: linear-gradient(135deg, #4f46e5, #06b6d4);
+    --pollinations-color: #ec4899;
+    --text-main: #f3f4f6;
+    --text-muted: #9ca3af;
+    --gold: #fbbf24;
+    --emerald: #10b981;
+    --purple: #8b5cf6;
+    --cyan: #06b6d4;
+  }
+
+  body {
+    margin: 0;
+    padding: 24px;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+  }
+
+  .audioarc-container {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--card-border);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .logo-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-group .icon {
+    font-size: 2.2rem;
+  }
+
+  .logo-group h1 {
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .subtitle {
+    margin: 2px 0 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .badges-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+
+  .badge-gemini {
+    background: rgba(99, 102, 241, 0.15);
+    color: #818cf8;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+  }
+
+  .badge-pollinations {
+    background: rgba(236, 72, 153, 0.15);
+    color: #f472b6;
+    border: 1px solid rgba(236, 72, 153, 0.3);
+  }
+
+  .badge-pdf {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+  }
+
+  .card-gemini {
+    background: linear-gradient(180deg, rgba(79, 70, 229, 0.08), rgba(20, 20, 24, 0.95));
+    border-color: rgba(99, 102, 241, 0.35);
+  }
+
+  .card-character {
+    background: linear-gradient(180deg, rgba(236, 72, 153, 0.05), rgba(20, 20, 24, 0.95));
+    border-color: rgba(236, 72, 153, 0.25);
+  }
+
+  .card-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .card-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #f9fafb;
+  }
+
+  .card-subtitle {
+    margin: 2px 0 0;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .gemini-sparkle {
+    font-size: 1.4rem;
+  }
+
+  .character-icon {
+    font-size: 1.4rem;
+  }
+
+  .status-pill {
+    font-size: 0.7rem;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    font-weight: 700;
+  }
+
+  .status-pill-offline {
+    background: rgba(255, 255, 255, 0.05);
+    color: #9ca3af;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .status-pill-online {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 680px) {
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #d1d5db;
+  }
+
+  .hint {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+
+  .link-external {
+    font-size: 0.72rem;
+    color: #818cf8;
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .link-external:hover {
+    text-decoration: underline;
+  }
+
+  .password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .password-wrapper input {
+    width: 100%;
+    padding-right: 36px;
+  }
+
+  .btn-toggle-eye {
+    position: absolute;
+    right: 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    opacity: 0.6;
+    padding: 4px;
+  }
+
+  .btn-toggle-eye:hover {
+    opacity: 1;
+  }
+
+  input, select, textarea {
+    background: #09090b;
+    border: 1px solid var(--card-border);
+    color: var(--text-main);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+  }
+
+  textarea {
+    resize: vertical;
+    font-family: inherit;
+    font-size: 0.82rem;
+  }
+
+  .button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .btn {
+    padding: 9px 16px;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-sm {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    border-radius: 8px;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: white;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  }
+
+  .btn-primary:hover {
+    filter: brightness(1.1);
+  }
+
+  .btn-gemini-action {
+    background: linear-gradient(135deg, #4f46e5, #06b6d4);
+    color: white;
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+  }
+
+  .btn-gemini-action:hover {
+    filter: brightness(1.12);
+  }
+
+  .btn-pdf-export {
+    background: linear-gradient(135deg, #059669, #10b981);
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+
+  .btn-pdf-export:hover {
+    filter: brightness(1.1);
+  }
+
+  .btn-pollinations {
+    background: linear-gradient(135deg, #db2777, #ec4899);
+    color: white;
+  }
+
+  .btn-pollinations:hover {
+    filter: brightness(1.1);
+  }
+
+  .btn-perchance {
+    background: #2e1065;
+    color: #d8b4fe;
+    border: 1px solid #7e22ce;
+  }
+
+  .btn-perchance:hover {
+    background: #3b0764;
+  }
+
+  .btn-secondary {
+    background: #27272a;
+    color: var(--text-main);
+    border: 1px solid var(--card-border);
+  }
+
+  .btn-secondary:hover {
+    background: #3f3f46;
+  }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--card-border);
+  }
+
+  .btn-outline:hover {
+    color: white;
+    border-color: #52525b;
+  }
+
+  .action-bar-card {
+    background: #101014;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+  }
+
+  .master-button-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .generation-status-text {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: rgba(99, 102, 241, 0.12);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    color: #c7d2fe;
+  }
+
+  .character-form-container {
+    background: #0d0d10;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 14px;
+  }
+
+  .portrait-preview-row {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .portrait-box {
+    width: 80px;
+    height: 80px;
+    border-radius: 12px;
+    border: 2px dashed rgba(255, 255, 255, 0.15);
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    shrink: 0;
+  }
+
+  .portrait-box img {
+    width: 100%;
+    height: 100%;
+    object-cover: cover;
+  }
+
+  .portrait-placeholder-icon {
+    font-size: 1.8rem;
+    opacity: 0.4;
+  }
+
+  .character-roster {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+  }
+
+  .character-card {
+    background: #09090b;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    gap: 12px;
+    position: relative;
+  }
+
+  .character-card-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 10px;
+    background: #18181b;
+    overflow: hidden;
+    shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .character-card-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .character-card-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .character-card-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #f3f4f6;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .character-card-role {
+    font-size: 0.7rem;
+    color: #ec4899;
+    font-weight: 600;
+    margin: 1px 0 4px;
+  }
+
+  .character-card-desc {
+    font-size: 0.72rem;
+    color: #9ca3af;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .character-delete-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: transparent;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    font-size: 0.75rem;
+    opacity: 0.6;
+  }
+
+  .character-delete-btn:hover {
+    opacity: 1;
+  }
+
+  .empty-roster-msg {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 18px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    border: 1px dashed rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+  }
+
+  .results-container {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .placeholder-box {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    border: 2px dashed var(--card-border);
+    border-radius: 16px;
+    font-size: 0.9rem;
+  }
+
+  .scene-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: border-color 0.2s;
+  }
+
+  .scene-card:hover {
+    border-color: #3f3f46;
+  }
+
+  .scene-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .scene-title {
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: #60a5fa;
+  }
+
+  .scene-badges {
+    display: flex;
+    gap: 6px;
+    font-size: 0.72rem;
+  }
+
+  .scene-badge-time {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 8px;
+    border-radius: 6px;
+    color: #9ca3af;
+    font-family: monospace;
+  }
+
+  .scene-badge-group {
+    background: rgba(139, 92, 246, 0.2);
+    color: #c4b5fd;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+
+  .scene-badge-char {
+    background: rgba(236, 72, 153, 0.18);
+    color: #f472b6;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+
+  .scene-lyric {
+    color: var(--gold);
+    font-style: italic;
+    font-size: 0.88rem;
+    background: rgba(251, 191, 36, 0.08);
+    padding: 8px 12px;
+    border-radius: 8px;
+    border-left: 3px solid var(--gold);
+  }
+
+  .prompt-box {
+    background: #09090b;
+    border: 1px solid #1f1f23;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    line-height: 1.6;
+  }
+
+  .prompt-label {
+    font-weight: 700;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    display: block;
+  }
+
+  .prompt-label-image { color: #60a5fa; }
+  .prompt-label-camera { color: #f472b6; }
+  .prompt-label-sora { color: #34d399; }
+  .prompt-label-action { color: #fbbf24; }
+
+  .flex-align-center {
+    display: flex;
+    align-items: center;
+  }
+
+  .gap-8 { gap: 8px; }
+  .mt-6 { margin-top: 6px; }
+  .mt-12 { margin-top: 12px; }
+</style>
+
+<script>
+  // State
+  let activeCharacters = [];
+  let currentGeneratedScenes = [];
+  let temporaryPortraitUrl = '';
+
+  // Helpers
+  function formatSeconds(sec) {
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  function togglePasswordVisibility(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.type = el.type === 'password' ? 'text' : 'password';
+  }
+
+  function saveGeminiKey(key) {
+    const clean = (key || '').trim();
+    if (clean) {
+      localStorage.setItem('audioarc_gemini_key', clean);
+    } else {
+      localStorage.removeItem('audioarc_gemini_key');
+    }
+    updateGeminiStatusBadge();
+  }
+
+  function getStoredGeminiKey() {
+    return localStorage.getItem('audioarc_gemini_key') || '';
+  }
+
+  function updateGeminiStatusBadge() {
+    const badge = document.getElementById('geminiStatusBadge');
+    const key = getStoredGeminiKey();
+    if (key) {
+      badge.className = 'status-pill status-pill-online';
+      badge.innerText = '● Gemini Key Saved';
+    } else {
+      badge.className = 'status-pill status-pill-offline';
+      badge.innerText = '● No Key (Procedural Mode)';
+    }
+  }
+
+  function toggleCharacterForm() {
+    const form = document.getElementById('characterFormContainer');
+    if (!form) return;
+    const isHidden = form.style.display === 'none';
+    form.style.display = isHidden ? 'block' : 'none';
+    if (isHidden) {
+      document.getElementById('newCharName').focus();
+    }
+  }
+
+  function generateCharacterPortraitPollinations() {
+    const name = document.getElementById('newCharName').value.trim() || 'Character';
+    const desc = document.getElementById('newCharDesc').value.trim() || 'cinematic portrait';
+    const role = document.getElementById('newCharRole').value.trim() || '';
+
+    const prompt = `Cinematic character portrait of ${name}${role ? ` (${role})` : ''}, ${desc}, highly detailed, 8k resolution, photorealistic character continuity reference, dramatic cinematic studio lighting, neutral background, looking at camera, 50mm portrait lens`;
+    const seed = Math.floor(Math.random() * 9999999);
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=512&nologo=true&seed=${seed}`;
+
+    temporaryPortraitUrl = url;
+    const imgEl = document.getElementById('newCharPortraitImg');
+    const placeholder = document.querySelector('#newCharPortraitBox .portrait-placeholder-icon');
+    
+    imgEl.src = url;
+    imgEl.style.display = 'block';
+    if (placeholder) placeholder.style.display = 'none';
+  }
+
+  function openCharacterInPerchance() {
+    const name = document.getElementById('newCharName').value.trim() || 'Character';
+    const desc = document.getElementById('newCharDesc').value.trim() || 'cinematic portrait';
+    const prompt = `Cinematic portrait of ${name}, ${desc}, detailed facial features, character art, dramatic lighting, 8k`;
+    window.open(`https://perchance.org/ai-text-to-image-generator#prompt=${encodeURIComponent(prompt)}`, '_blank');
+  }
+
+  function saveNewCharacter() {
+    const name = document.getElementById('newCharName').value.trim();
+    if (!name) {
+      alert('Please enter a Character Name.');
+      return;
+    }
+    const role = document.getElementById('newCharRole').value.trim() || 'Cast';
+    const desc = document.getElementById('newCharDesc').value.trim() || 'Striking cinematic presence';
+    const portrait = temporaryPortraitUrl || '';
+
+    const newChar = {
+      id: 'char_' + Date.now(),
+      name,
+      role,
+      desc,
+      portrait
+    };
+
+    activeCharacters.push(newChar);
+    renderCharacterRoster();
+
+    // Reset Form
+    document.getElementById('newCharName').value = '';
+    document.getElementById('newCharRole').value = '';
+    document.getElementById('newCharDesc').value = '';
+    temporaryPortraitUrl = '';
+    const imgEl = document.getElementById('newCharPortraitImg');
+    const placeholder = document.querySelector('#newCharPortraitBox .portrait-placeholder-icon');
+    imgEl.src = '';
+    imgEl.style.display = 'none';
+    if (placeholder) placeholder.style.display = 'block';
+    toggleCharacterForm();
+  }
+
+  function removeCharacter(id) {
+    activeCharacters = activeCharacters.filter(c => c.id !== id);
+    renderCharacterRoster();
+  }
+
+  function renderCharacterRoster() {
+    const roster = document.getElementById('characterRoster');
+    if (!roster) return;
+
+    if (activeCharacters.length === 0) {
+      roster.innerHTML = `
+        <div class="empty-roster-msg">
+          No characters created yet. Click <b>+ Add Character</b> to design cast members with AI portraits for scene continuity.
+        </div>
+      `;
+      return;
+    }
+
+    let html = '';
+    activeCharacters.forEach(c => {
+      html += `
+        <div class="character-card">
+          <button type="button" class="character-delete-btn" onclick="removeCharacter('${c.id}')" title="Remove character">✕</button>
+          <div class="character-card-avatar">
+            ${c.portrait ? `<img src="${c.portrait}" alt="${c.name}">` : `<span style="font-size:1.5rem">👤</span>`}
+          </div>
+          <div class="character-card-info">
+            <h4 class="character-card-name">${c.name}</h4>
+            <div class="character-card-role">${c.role}</div>
+            <div class="character-card-desc">${c.desc}</div>
+          </div>
+        </div>
+      `;
+    });
+    roster.innerHTML = html;
+  }
+
+  // Gemini AI Generation
+  async function generateWithGemini() {
+    const apiKey = getStoredGeminiKey() || document.getElementById('geminiApiKey').value.trim();
+    if (!apiKey) {
+      alert('Please enter your Google Gemini API Key in the Gemini AI Engine panel above to generate with Gemini AI, or use the "⚡ Procedural Scene Slicer" which requires zero keys!');
+      document.getElementById('geminiApiKey').focus();
+      return;
+    }
+
+    const title = document.getElementById('trackTitle').value || 'Cinematic Track';
+    const totalDuration = Math.max(10, parseInt(document.getElementById('trackDuration').value) || 60);
+    const style = document.getElementById('styleSelect').value;
+    const influence = document.getElementById('influenceSelect').value;
+    const lyrics = document.getElementById('lyricsInput').value.trim();
+    const model = document.getElementById('geminiModel').value || 'gemini-3.8-flash';
+
+    const statusEl = document.getElementById('generationStatus');
+    statusEl.style.display = 'block';
+    statusEl.innerText = `Connecting to Google Gemini (${model})... analyzing song structure and narrative arc...`;
+
+    // Calculate approximate scenes
+    const targetSceneCount = Math.max(3, Math.round(totalDuration / 6.0));
+
+    const characterContext = activeCharacters.length > 0 
+      ? `CAST CHARACTERS FOR VISUAL CONTINUITY:\n` + activeCharacters.map((c, i) => `${i+1}. ${c.name} (${c.role}): ${c.desc}`).join('\n')
+      : `No explicit character locks; invent compelling cast fitting the aesthetic.`;
+
+    const systemPrompt = `You are a world-class Hollywood music video director and cinematographer.
+Convert the provided song lyrics, title, duration, aesthetic style, and characters into a synchronized shot-by-shot cinematic storyboard.
+
+SONG TITLE: "${title}"
+TOTAL DURATION: ${totalDuration} seconds
+VISUAL AESTHETIC: ${style}
+DIRECTOR INFLUENCE: ${influence}
+${characterContext}
+
+LYRICS / MUSICAL CUES:
+${lyrics || '[Instrumental track with evolving emotional dynamics]'}
+
+INSTRUCTIONS:
+1. Divide the song into approximately ${targetSceneCount} consecutive scenes spanning 0 to ${totalDuration} seconds (each scene roughly 4 to 8 seconds).
+2. For every scene, output:
+   - sceneNumber: integer
+   - startTime: string formatted MM:SS
+   - endTime: string formatted MM:SS
+   - duration: number of seconds
+   - sectionGroup: e.g. "Intro", "Verse 1", "Chorus", "Bridge", "Outro"
+   - lyricSnippet: lyric lines heard or musical feeling
+   - screenplayAction: formatted narrative action and blocking
+   - cameraMovement: specific cinematic camera move (dolly, crane, tracking, orbit, handheld)
+   - imagePrompt: Midjourney/Flux prompt with film stock, optics, lighting, characters, and composition
+   - soraPrompt: continuous motion directive for Sora/Veo with physical realism and camera movement
+
+Return ONLY a valid JSON object matching this schema:
+{
+  "projectTitle": "${title}",
+  "logline": "1-2 sentence executive treatment / narrative synopsis",
+  "scenes": [
+    {
+      "sceneNumber": 1,
+      "startTime": "00:00",
+      "endTime": "00:06",
+      "duration": 6,
+      "sectionGroup": "Intro",
+      "lyricSnippet": "...",
+      "screenplayAction": "...",
+      "cameraMovement": "...",
+      "imagePrompt": "...",
+      "soraPrompt": "..."
+    }
+  ]
+}`;
+
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const payload = {
+        contents: [{ parts: [{ text: systemPrompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
+      };
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error?.message || `Google API error ${res.status}`);
+      }
+
+      statusEl.innerText = `Gemini response received! Rendering storyboard and prompts...`;
+      const json = await res.json();
+      const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const parsed = JSON.parse(rawText);
+
+      currentGeneratedScenes = parsed.scenes || [];
+      renderStoryboard(currentGeneratedScenes, parsed.logline);
+      statusEl.style.display = 'none';
+
+    } catch (err) {
+      console.error("Gemini Generation Error:", err);
+      statusEl.className = 'generation-status-text';
+      statusEl.style.background = 'rgba(239, 68, 68, 0.15)';
+      statusEl.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+      statusEl.style.color = '#fca5a5';
+      statusEl.innerText = `Gemini Generation Failed: ${err.message}. Falling back to Procedural Slicer...`;
+      setTimeout(() => {
+        statusEl.style.display = 'none';
+        generateScenesProcedural();
+      }, 3000);
+    }
+  }
+
+  // Procedural Fallback
+  function generateScenesProcedural() {
+    const title = document.getElementById('trackTitle').value || 'Cinematic Track';
+    const totalDuration = Math.max(10, parseInt(document.getElementById('trackDuration').value) || 60);
+    const style = document.getElementById('styleSelect').value;
+    const influence = document.getElementById('influenceSelect').value;
+    const rawLyrics = document.getElementById('lyricsInput').value.trim();
+
+    const targetSceneDuration = 6.0;
+    const sceneCount = Math.max(2, Math.round(totalDuration / targetSceneDuration));
+    const sceneDuration = totalDuration / sceneCount;
+    const lyricLines = rawLyrics ? rawLyrics.split('\n').filter(l => l.trim() && !l.trim().startsWith('[')) : [];
+
+    const cameraMoves = [
+      "Slow cinematic dolly push-in toward the subject with shallow depth of field",
+      "Dynamic 360-degree orbital tracking shot keeping the subject centered",
+      "Sweeping crane jib rise starting low at ground level and ascending overhead",
+      "Handheld tactile follow shot with subtle organic camera breath and grain",
+      "Whip pan transition tracking from the subject's gaze into the environment",
+      "Low-angle Dutch tilt shot creeping forward with dramatic architectural shadows"
+    ];
+
+    const filmStocks = [
+      "shot on 35mm Kodak Vision3 500T, Cooke anamorphic prime lenses, organic fine grain",
+      "shot on 16mm Arri SR3, vintage high-speed glass, warm analog halation and texture",
+      "shot on IMAX 70mm, Hasselblad medium format optics, razor-sharp edge-to-edge clarity",
+      "shot on vintage 1970s Panavision glass with soft horizontal flares and vignette"
+    ];
+
+    const scenes = [];
+    for (let i = 0; i < sceneCount; i++) {
+      const startSec = i * sceneDuration;
+      const endSec = (i === sceneCount - 1) ? totalDuration : (i + 1) * sceneDuration;
+      const dur = Math.round((endSec - startSec) * 10) / 10;
+
+      let groupName = 'Verse';
+      const progress = (i + 0.5) / sceneCount;
+      if (progress < 0.15) groupName = 'Intro';
+      else if (progress > 0.85) groupName = 'Outro';
+      else if (progress > 0.4 && progress < 0.65) groupName = 'Chorus';
+      else if (progress >= 0.65 && progress <= 0.8) groupName = 'Bridge';
+
+      let sceneLyric = '';
+      if (lyricLines.length > 0) {
+        const lineIdx = Math.floor((i / sceneCount) * lyricLines.length);
+        sceneLyric = lyricLines[lineIdx] || lyricLines[lyricLines.length - 1];
+      } else {
+        sceneLyric = `[Instrumental ${groupName} - dynamic sonic movement]`;
+      }
+
+      const charName = activeCharacters.length > 0 ? activeCharacters[i % activeCharacters.length].name : '';
+      const charDesc = activeCharacters.length > 0 ? activeCharacters[i % activeCharacters.length].desc : '';
+
+      const cameraMove = cameraMoves[i % cameraMoves.length];
+      const stock = filmStocks[i % filmStocks.length];
+
+      const imagePrompt = `${charName ? `${charName} (${charDesc}). ` : ''}${sceneLyric}. ${style}. Director influence: ${influence}. Cinematic framing, ${stock}, dramatic high contrast studio lighting, 8k resolution.`;
+
+      const soraPrompt = `A continuous ${dur}s cinematic shot in ${style} aesthetic, influenced by ${influence}. ${charName ? `${charName} moves with authentic weight and gaze. ` : ''}${sceneLyric}. ${cameraMove}. Authentic micro-gestures and physical lighting.`;
+
+      scenes.push({
+        sceneNumber: i + 1,
+        startTime: formatSeconds(startSec),
+        endTime: formatSeconds(endSec),
+        duration: dur,
+        sectionGroup: groupName,
+        lyricSnippet: sceneLyric,
+        screenplayAction: `INT./EXT. SCENE ${i+1} - ${groupName.toUpperCase()}\n${charName ? `${charName.toUpperCase()} is captured on screen. ` : ''}Camera performs ${cameraMove.toLowerCase()} while musical elements resonate.`,
+        cameraMovement: cameraMove,
+        imagePrompt: imagePrompt,
+        soraPrompt: soraPrompt
+      });
+    }
+
+    currentGeneratedScenes = scenes;
+    renderStoryboard(scenes, `Cinematic narrative exploring "${title}" through a ${style} aesthetic.`);
+  }
+
+  function renderStoryboard(scenes, logline) {
+    const resultsDiv = document.getElementById('resultsContainer');
+    if (!resultsDiv) return;
+
+    let html = '';
+    if (logline) {
+      html += `
+        <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 12px; padding: 14px 18px; margin-bottom: 8px;">
+          <span style="font-size:0.75rem; font-weight:700; text-transform:uppercase; color:#818cf8; letter-spacing:0.5px;">🎬 Executive Treatment / Logline</span>
+          <p style="margin:4px 0 0; font-size:0.88rem; color:#e0e7ff; line-height:1.5;">${logline}</p>
+        </div>
+      `;
+    }
+
+    scenes.forEach(s => {
+      html += `
+        <div class="scene-card">
+          <div class="scene-header">
+            <span class="scene-title">SCENE ${s.sceneNumber}</span>
+            <div class="scene-badges">
+              <span class="scene-badge-time">${s.startTime} - ${s.endTime} (${s.duration}s)</span>
+              <span class="scene-badge-group">${s.sectionGroup || 'Scene'}</span>
+            </div>
+          </div>
+          <div class="scene-lyric">"${s.lyricSnippet}"</div>
+
+          ${s.screenplayAction ? `
+            <div class="prompt-box">
+              <span class="prompt-label prompt-label-action">📜 Screenplay Action & Blocking</span>
+              ${s.screenplayAction}
+            </div>
+          ` : ''}
+          
+          <div class="prompt-box">
+            <span class="prompt-label prompt-label-image">🖼️ Master Image Prompt (Midjourney / Flux / SD)</span>
+            ${s.imagePrompt}
+          </div>
+
+          <div class="prompt-box">
+            <span class="prompt-label prompt-label-camera">🎥 Camera Motion Directive</span>
+            ${s.cameraMovement}
+          </div>
+
+          <div class="prompt-box">
+            <span class="prompt-label prompt-label-sora">⚡ Sora / Veo / Kling High-Fidelity Video Prompt</span>
+            ${s.soraPrompt}
+          </div>
+        </div>
+      `;
+    });
+
+    resultsDiv.innerHTML = html;
+  }
+
+  // Master Production Bible PDF Export
+  async function downloadMasterProductionNotesPDF() {
+    if (!currentGeneratedScenes || currentGeneratedScenes.length === 0) {
+      alert('Please generate scenes first (via Gemini AI or Procedural Slicer) before exporting the Master Production Bible PDF!');
+      return;
+    }
+
+    if (typeof window.jspdf === 'undefined') {
+      alert('PDF generation engine is loading. Please wait a moment and try again.');
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'pt',
+      format: 'letter'
+    });
+
+    const title = document.getElementById('trackTitle').value || 'Cinematic Track';
+    const totalDuration = document.getElementById('trackDuration').value || '60';
+    const style = document.getElementById('styleSelect').value;
+    const influence = document.getElementById('influenceSelect').value;
+    const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 40;
+    const contentWidth = pageWidth - (margin * 2);
+
+    let cursorY = margin;
+
+    function addHeaderAndFooter(pageNum, totalPages) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text(`AUDIOARC MASTER PRODUCTION BIBLE • ${title.toUpperCase()}`, margin, 25);
+      doc.setDrawColor(200, 200, 200);
+      doc.line(margin, 28, pageWidth - margin, 28);
+
+      doc.line(margin, pageHeight - 25, pageWidth - margin, pageHeight - 25);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`CONFIDENTIAL • FOR PRODUCTION USE ONLY`, margin, pageHeight - 14);
+      doc.text(`Page ${pageNum}`, pageWidth - margin - 35, pageHeight - 14);
+    }
+
+    // --- PAGE 1: COVER & EXECUTIVE TREATMENT ---
+    // Header Banner
+    doc.setFillColor(15, 23, 42); // Navy 900
+    doc.rect(margin, cursorY, contentWidth, 90, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.text(title.toUpperCase(), margin + 16, cursorY + 38);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(148, 163, 184);
+    doc.text(`MASTER PRODUCTION BIBLE & DIRECTOR'S SCREENPLAY`, margin + 16, cursorY + 58);
+    doc.setFontSize(9);
+    doc.text(`DURATION: ${totalDuration}s  •  DATE: ${dateStr}  •  ENGINE: GEMINI 3.8 & PERCHANCE`, margin + 16, cursorY + 76);
+
+    cursorY += 110;
+
+    // Creative Direction Table
+    doc.setFillColor(248, 250, 252);
+    doc.rect(margin, cursorY, contentWidth, 65, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(margin, cursorY, contentWidth, 65, 'S');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(30, 41, 59);
+    doc.text('VISUAL AESTHETIC:', margin + 12, cursorY + 22);
+    doc.text('DIRECTOR INFLUENCE:', margin + 12, cursorY + 46);
+
+    doc.setFont('helvetica', 'normal');
+    doc.text(doc.splitTextToSize(style, contentWidth - 160), margin + 150, cursorY + 22);
+    doc.text(doc.splitTextToSize(influence, contentWidth - 160), margin + 150, cursorY + 46);
+
+    cursorY += 85;
+
+    // Cast & Character Bible
+    if (activeCharacters.length > 0) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(15, 23, 42);
+      doc.text('CAST & CHARACTER CONTINUITY BIBLE', margin, cursorY);
+      cursorY += 16;
+
+      for (const char of activeCharacters) {
+        if (cursorY > pageHeight - 90) {
+          doc.addPage();
+          cursorY = margin + 20;
+        }
+
+        doc.setFillColor(241, 245, 249);
+        doc.roundedRect(margin, cursorY, contentWidth, 48, 4, 4, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(15, 23, 42);
+        doc.text(`${char.name} — ${char.role}`, margin + 12, cursorY + 18);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(71, 85, 105);
+        const descLines = doc.splitTextToSize(char.desc, contentWidth - 24);
+        doc.text(descLines, margin + 12, cursorY + 34);
+
+        cursorY += 56;
+      }
+      cursorY += 10;
+    }
+
+    // --- PAGE 2+: PRODUCTION SHOTLIST & PROMPT BIBLE ---
+    doc.addPage();
+    cursorY = margin + 20;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(15, 23, 42);
+    doc.text('MASTER SHOT SCHEDULE & SORA DIRECTIVES', margin, cursorY);
+    cursorY += 20;
+
+    for (let i = 0; i < currentGeneratedScenes.length; i++) {
+      const s = currentGeneratedScenes[i];
+
+      // Estimate height needed for this scene card
+      const promptLines = doc.splitTextToSize(`Image Prompt: ${s.imagePrompt}`, contentWidth - 24);
+      const soraLines = doc.splitTextToSize(`Sora Prompt: ${s.soraPrompt}`, contentWidth - 24);
+      const cardHeight = 55 + (promptLines.length * 11) + (soraLines.length * 11);
+
+      if (cursorY + cardHeight > pageHeight - 40) {
+        doc.addPage();
+        cursorY = margin + 20;
+      }
+
+      // Card Background
+      doc.setFillColor(250, 250, 250);
+      doc.setDrawColor(220, 225, 230);
+      doc.roundedRect(margin, cursorY, contentWidth, cardHeight, 6, 6, 'FD');
+
+      // Card Header
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(37, 99, 235);
+      doc.text(`SCENE ${s.sceneNumber}  [${s.startTime} - ${s.endTime} • ${s.duration}s]`, margin + 12, cursorY + 18);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(100, 116, 139);
+      doc.text(s.sectionGroup ? s.sectionGroup.toUpperCase() : 'SCENE', pageWidth - margin - 80, cursorY + 18);
+
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(9);
+      doc.setTextColor(180, 83, 9);
+      doc.text(`Lyric: "${s.lyricSnippet}"`, margin + 12, cursorY + 32);
+
+      let textY = cursorY + 48;
+
+      // Image Prompt
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(30, 41, 59);
+      doc.text(promptLines, margin + 12, textY);
+      textY += (promptLines.length * 11) + 4;
+
+      // Sora Prompt
+      doc.setTextColor(5, 150, 105);
+      doc.text(soraLines, margin + 12, textY);
+
+      cursorY += cardHeight + 12;
+    }
+
+    // Add page numbers
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p);
+      addHeaderAndFooter(p, totalPages);
+    }
+
+    const cleanName = title.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
+    doc.save(`${cleanName}_master_production_notes.pdf`);
+  }
+
+  function copyAllPrompts() {
+    const cards = document.querySelectorAll('.scene-card');
+    if (!cards || cards.length === 0) {
+      alert('Generate scenes first before copying!');
+      return;
+    }
+
+    let text = '=== AUDIOARC SCENE PROMPTS ===\n\n';
+    cards.forEach((card, idx) => {
+      const title = card.querySelector('.scene-title')?.innerText || `Scene ${idx+1}`;
+      const time = card.querySelector('.scene-badge-time')?.innerText || '';
+      const lyric = card.querySelector('.scene-lyric')?.innerText || '';
+      const boxes = card.querySelectorAll('.prompt-box');
+
+      text += `${title} ${time}\nLyric: ${lyric}\n`;
+      boxes.forEach(b => {
+        text += b.innerText + '\n';
+      });
+      text += '\n----------------------------------------\n\n';
+    });
+
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Copied all scene prompts to clipboard!');
+    });
+  }
+
+  function randomizeAll() {
+    update();
+    setTimeout(generateScenesProcedural, 100);
+  }
+
+  // Initialize
+  window.addEventListener('DOMContentLoaded', () => {
+    const savedKey = getStoredGeminiKey();
+    if (savedKey) {
+      const keyInput = document.getElementById('geminiApiKey');
+      if (keyInput) keyInput.value = savedKey;
+      updateGeminiStatusBadge();
+    }
+    generateScenesProcedural();
+  });
+</script>

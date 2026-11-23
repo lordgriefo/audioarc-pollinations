@@ -82,8 +82,13 @@ const formatDurationMMSS = (seconds: number): string => {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 };
 
-const prepareImageForPdf = async (dataUrl: string): Promise<PreparedImage | null> => {
-  if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) {
+const prepareImageForPdf = async (imageUrl: string): Promise<PreparedImage | null> => {
+  if (!imageUrl || typeof imageUrl !== 'string') {
+    return null;
+  }
+  const isDataUrl = imageUrl.startsWith('data:image/');
+  const isHttpUrl = imageUrl.startsWith('http://') || imageUrl.startsWith('https://');
+  if (!isDataUrl && !isHttpUrl) {
     return null;
   }
 
@@ -94,12 +99,12 @@ const prepareImageForPdf = async (dataUrl: string): Promise<PreparedImage | null
       try {
         const w = img.naturalWidth || img.width || 640;
         const h = img.naturalHeight || img.height || 360;
-        const isPng = dataUrl.startsWith('data:image/png');
-        const isJpeg = dataUrl.startsWith('data:image/jpeg') || dataUrl.startsWith('data:image/jpg');
+        const isPng = imageUrl.startsWith('data:image/png');
+        const isJpeg = imageUrl.startsWith('data:image/jpeg') || imageUrl.startsWith('data:image/jpg');
 
         if (isPng || isJpeg) {
           resolve({
-            dataUrl,
+            dataUrl: imageUrl,
             format: isPng ? 'PNG' : 'JPEG',
             width: w,
             height: h,
@@ -107,7 +112,7 @@ const prepareImageForPdf = async (dataUrl: string): Promise<PreparedImage | null
           return;
         }
 
-        // Convert WebP or other browser-supported formats to JPEG via canvas for jsPDF compatibility
+        // Convert WebP, HTTP/HTTPS URLs, or other formats to JPEG via canvas for jsPDF compatibility
         const canvas = document.createElement('canvas');
         canvas.width = w;
         canvas.height = h;
@@ -131,7 +136,7 @@ const prepareImageForPdf = async (dataUrl: string): Promise<PreparedImage | null
       }
     };
     img.onerror = () => resolve(null);
-    img.src = dataUrl;
+    img.src = imageUrl;
   });
 };
 
