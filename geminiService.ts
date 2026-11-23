@@ -39,17 +39,17 @@ export interface GenerateImageResult {
  */
 export function mapToGoogleGenerativeModel(model: string): string {
   const clean = (model || '').replace(/^models\//, '').trim();
-  if (!clean) return 'gemini-2.5-flash';
-  if (clean.includes('hydrogen') || clean.includes('flash-lite') || clean === 'gemini-3.1-flash-lite') {
-    return 'gemini-2.5-flash';
+  if (!clean) return 'gemini-3.8-flash';
+  if (clean.includes('gemini-2.5') || clean.includes('hydrogen') || clean.includes('flash-lite') || clean === 'gemini-3.1-flash-lite') {
+    return 'gemini-3.8-flash';
   }
   if (clean.includes('argon') || clean.includes('carbon') || clean.includes('pro')) {
     return 'gemini-1.5-pro';
   }
-  if (clean.includes('gemini-2.5') || clean.includes('gemini-2.0') || clean.includes('gemini-1.5')) {
+  if (clean.includes('gemini-3.8') || clean.includes('gemini-2.0') || clean.includes('gemini-1.5')) {
     return clean;
   }
-  return 'gemini-2.5-flash';
+  return 'gemini-3.8-flash';
 }
 
 /**
@@ -257,7 +257,7 @@ export async function generateVideoServer(params: {
 /**
  * Ping server Gemini connection or test direct Google Generative Language API
  */
-export async function pingGeminiServer(model: string = 'gemini-2.5-flash-lite', explicitKey?: string): Promise<{ ok: boolean; message: string }> {
+export async function pingGeminiServer(model: string = 'gemini-3.8-flash', explicitKey?: string): Promise<{ ok: boolean; message: string }> {
   const clientKey = explicitKey || (typeof window !== 'undefined' ? localStorage.getItem('audioarc_gemini_key') || '' : '');
 
   // Try server endpoint first
