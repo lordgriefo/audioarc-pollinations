@@ -93,6 +93,30 @@ export async function generateContentServer(params: {
     contentsPayload = [{ parts: [{ text: JSON.stringify(params.contents) }] }];
   }
 
+  // Normalize parts to ensure inline_data and mime_type match Google Generative Language REST spec
+  contentsPayload = contentsPayload.map((item: any) => {
+    if (!item || !Array.isArray(item.parts)) return item;
+    return {
+      ...item,
+      parts: item.parts.map((part: any) => {
+        if (!part || typeof part !== 'object') return part;
+        if (part.inlineData || part.inline_data) {
+          const raw = part.inlineData || part.inline_data;
+          const mime = raw.mimeType || raw.mime_type || 'image/jpeg';
+          const data = raw.data || '';
+          return {
+            inline_data: {
+              mime_type: mime,
+              data: data,
+            },
+            ...(part.text ? { text: part.text } : {})
+          };
+        }
+        return part;
+      })
+    };
+  });
+
   const bodyPayload: any = {
     contents: contentsPayload,
   };

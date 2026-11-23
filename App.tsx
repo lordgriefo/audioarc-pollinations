@@ -1508,7 +1508,7 @@ export const App: React.FC = () => {
       if (provider === 'ollama') return await performOllamaRequest(prompt, isJson, images);
       if (provider === 'lmstudio') return await performLmStudioRequest(prompt, isJson, images);
       if (provider === 'openrouter') return await performOpenRouterRequest(prompt, images, isJson);
-      if (provider === 'pollinations') return await performPollinationsRequest(prompt, isJson);
+      if (provider === 'pollinations') return await performPollinationsRequest(prompt, isJson, images);
       return '';
   };
 
@@ -1665,7 +1665,7 @@ export const App: React.FC = () => {
       return '';
   };
 
-  const performPollinationsRequest = async (prompt: string, isJson = false): Promise<string> => {
+  const performPollinationsRequest = async (prompt: string, isJson = false, images?: string[]): Promise<string> => {
       let baseUrl = pollinationsUrl.trim().replace(/\/$/, '');
       if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
           baseUrl = `https://${baseUrl}`;
@@ -1682,16 +1682,27 @@ export const App: React.FC = () => {
               headers['Authorization'] = `Bearer ${pollinationsApiKey.trim().replace(/^Bearer\s+/i, '')}`;
           }
 
+          let userContent: any = prompt;
+          if (images && images.length > 0) {
+              userContent = [
+                  { type: 'text', text: prompt },
+                  ...images.map(img => ({
+                      type: 'image_url',
+                      image_url: { url: img.startsWith('data:') ? img : `data:image/jpeg;base64,${img}` }
+                  }))
+              ];
+          }
+
           let resultText = '';
 
           // If user pointed to gen.pollinations.ai or an OpenAI-compatible endpoint
           if (baseUrl.includes('gen.pollinations.ai') || baseUrl.includes('/v1')) {
               const url = baseUrl.endsWith('/chat/completions') ? baseUrl : `${baseUrl}/chat/completions`;
               const payload: any = {
-                  model: pollinationsModel || 'openai',
+                  model: (images && images.length > 0) ? 'openai' : (pollinationsModel || 'openai'),
                   messages: [
                       { role: 'system', content: 'You are an elite cinematic music video director and prompt engineer. Strictly adhere to formatting instructions.' },
-                      { role: 'user', content: prompt }
+                      { role: 'user', content: userContent }
                   ],
                   temperature: 0.7
               };
@@ -2829,52 +2840,118 @@ Keys: "lyric", "description", "imagePrompt", "videoPrompts", "soraPrompt", "grou
 
   
 
-   const handleReferenceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const resizeImageForAnalysis = async (file: File, maxDim = 1024): Promise<{ base64: string; mimeType: string }> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const raw = event.target?.result as string;
+        if (!raw) {
+          resolve({ base64: '', mimeType: file.type || 'image/jpeg' });
+          return;
+        }
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve({ base64: raw, mimeType: file.type || 'image/jpeg' });
+            return;
+          }
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          const resizedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+          resolve({ base64: resizedBase64, mimeType: 'image/jpeg' });
+        };
+        img.onerror = () => {
+          resolve({ base64: raw, mimeType: file.type || 'image/jpeg' });
+        };
+        img.src = raw;
+      };
+      reader.onerror = () => {
+        resolve({ base64: '', mimeType: file.type || 'image/jpeg' });
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleReferenceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0]; if (!file) return;
 
-      if (!checkKeysAndShowSettings()) return;
+      const hasGeminiKey = Boolean(getEffectiveGeminiKey());
       
-      const base64 = await fileToBase64(file);
+      // Resize to 1024px for swift, reliable analysis and lightweight storage
+      const resized = await resizeImageForAnalysis(file, 1024);
+      const base64 = resized.base64 || await fileToBase64(file);
       const id = generateUUID();
-      const newRef: VisualReference = { id, name: `Ref ${visualRefs.length + 1}`, description: "Analyzing...", image: base64, analyzing: true };
+      const newRef: VisualReference = { id, name: `Character ${visualRefs.length + 1}`, description: "Analyzing character appearance...", image: base64, analyzing: true };
       setVisualRefs(prev => [...prev, newRef]);
       
       const timeout = (ms: number) => new Promise((_, reject) => setTimeout(() => reject(new Error("Analysis timed out")), ms));
 
       try {
           let description = "";
-          const prompt = "Describe the physical appearance of the subject in this image for use in a film casting prompt. Focus on face, hair, body type, and clothing. Be concise. Do not describe the background.";
-          const base64Data = base64.split(',')[1];
+          const prompt = "Act as an expert casting director. Describe the physical appearance of the character/person in this image for film visual continuity. Detail their apparent age, facial features, hair style and color, eye color, skin tone/build, and distinctive wardrobe or props. Output 1 concise paragraph focusing strictly on character visual continuity. Do not describe the background.";
+          const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
           
-          if (provider === 'gemini') {
+          // Smart provider routing: If user has a Gemini key (or provider === 'gemini'), prioritize Gemini Vision (gemini-3.8-flash)
+          if (hasGeminiKey || provider === 'gemini') {
               const analysisPromise = (async () => {
                   const res = await generateContentServer({ 
-                      model: geminiUtilityModel, 
-                      contents: { parts: [ { inlineData: { mimeType: file.type || 'image/jpeg', data: base64Data } }, { text: prompt } ] } 
+                      model: 'gemini-3.8-flash', 
+                      contents: { parts: [ { inline_data: { mime_type: resized.mimeType || 'image/jpeg', data: base64Data } }, { text: prompt } ] } 
                   });
                   updateUsage(res);
-                  return res.text || "Analysis failed.";
+                  return res.text || "";
               })();
-              description = await Promise.race([analysisPromise, timeout(60000)]) as string;
+              description = await Promise.race([analysisPromise, timeout(45000)]) as string;
           } else if (provider === 'openai' || provider === 'ollama' || provider === 'lmstudio' || provider === 'openrouter') {
               const analysisPromise = performProviderRequest(prompt, false, [base64Data]);
-              description = await Promise.race([analysisPromise, timeout(120000)]) as string;
+              description = await Promise.race([analysisPromise, timeout(90000)]) as string;
           } else {
-               description = "Image analysis not supported by this provider. Please describe manually.";
+              // Pollinations provider: attempt vision via Pollinations OpenAI bridge
+              try {
+                  const analysisPromise = performProviderRequest(prompt, false, [base64Data]);
+                  description = await Promise.race([analysisPromise, timeout(45000)]) as string;
+              } catch (pollErr) {
+                  console.warn("Pollinations vision error:", pollErr);
+                  description = "";
+              }
           }
-          setVisualRefs(prev => prev.map(r => r.id === id && r.analyzing ? { ...r, description, analyzing: false } : r));
+
+          if (!description || description.trim().length === 0) {
+              description = "Character visual reference uploaded. Edit this description with age, facial features, hair, and wardrobe, or connect Gemini in Settings for automated high-fidelity analysis.";
+          }
+
+          setVisualRefs(prev => {
+            const updated = prev.map(r => r.id === id && r.analyzing ? { ...r, description: description.trim(), analyzing: false } : r);
+            try { localStorage.setItem('audioarc_visual_refs', JSON.stringify(updated)); } catch {}
+            return updated;
+          });
       } catch (e: any) {
           console.error("Analysis Error:", e);
-          let errorMsg = "Analysis failed. Please describe manually.";
-          if (e.message?.includes("timed out")) errorMsg = "Analysis timed out. Please describe manually.";
-          if (e.message?.includes("Safety") || (e.response?.promptFeedback?.blockReason)) errorMsg = "AI Safety Block. Describe manually.";
+          let errorMsg = "Character image loaded. Enter description or connect Gemini in Settings for automated analysis.";
+          if (e.message?.includes("timed out")) errorMsg = "Analysis timed out. Please describe character manually.";
+          if (e.message?.includes("Safety") || (e.response?.promptFeedback?.blockReason)) errorMsg = "AI Safety Block. Please describe character manually.";
           
-          if (e instanceof TypeError && e.message.includes('Failed to fetch')) {
-              handleApiError(e, 'Reference Image Analysis');
-              errorMsg = "Network error.";
-          }
-          
-          setVisualRefs(prev => prev.map(r => r.id === id && r.analyzing ? { ...r, description: errorMsg, analyzing: false } : r));
+          setVisualRefs(prev => {
+            const updated = prev.map(r => r.id === id && r.analyzing ? { ...r, description: errorMsg, analyzing: false } : r);
+            try { localStorage.setItem('audioarc_visual_refs', JSON.stringify(updated)); } catch {}
+            return updated;
+          });
       }
   };
 
@@ -4774,49 +4851,126 @@ Note: "category" must be one of: "lighting", "camera", "color", "motion", "aesth
     setShowCustomModal(false); 
   };
   
+  const synthesizeCinematicStyleFallback = (styleQuery: string): string => {
+    const q = (styleQuery || '').toLowerCase();
+    
+    let lighting = "Dramatic volumetric lighting with high-contrast chiaroscuro and atmospheric depth";
+    if (q.includes("neon") || q.includes("cyber") || q.includes("blade") || q.includes("synth")) {
+      lighting = "Saturated neon reflections with practical magenta and cyan backlights over wet, rain-slicked urban textures";
+    } else if (q.includes("noir") || q.includes("shadow") || q.includes("dark") || q.includes("crime")) {
+      lighting = "Deep Venetian blind shadow patterns, hard single-source key lighting, and moody silhouetted rim illumination";
+    } else if (q.includes("vintage") || q.includes("retro") || q.includes("70") || q.includes("80") || q.includes("kodak")) {
+      lighting = "Warm nostalgic tungsten glow with soft golden-hour natural spill and organic optical halation";
+    } else if (q.includes("horror") || q.includes("folk") || q.includes("eerie") || q.includes("gothic")) {
+      lighting = "Sun-bleached naturalistic daylight contrasting with oppressive interior shadow vignettes and candlelight";
+    } else if (q.includes("anime") || q.includes("dream") || q.includes("surreal") || q.includes("fantasy")) {
+      lighting = "Hypnotic ethereal radiance with lush volumetric cloud diffusion, golden rays, and iridescent prism flares";
+    }
+
+    let optics = "shot on 35mm Kodak Vision3 500T, Cooke Anamorphic/i prime lenses, organic fine grain";
+    if (q.includes("16mm") || q.includes("gritty") || q.includes("documentary") || q.includes("raw")) {
+      optics = "shot on 16mm Arri SR3 with vintage high-speed glass, tactile analog grain, and subtle gate weave";
+    } else if (q.includes("imax") || q.includes("70mm") || q.includes("epic") || q.includes("monumental")) {
+      optics = "shot on IMAX 70mm with Hasselblad medium format glass, razor-sharp edge-to-edge cinematic clarity";
+    } else if (q.includes("vintage") || q.includes("70s") || q.includes("panavision")) {
+      optics = "shot on vintage 1970s Panavision anamorphic primes with streak flares, warm color fringing, and soft falloff";
+    }
+
+    let camera = "controlled slow dolly push-ins and deliberate symmetrical tracking shots";
+    if (q.includes("action") || q.includes("fast") || q.includes("kinetic") || q.includes("chase")) {
+      camera = "dynamic handheld momentum with whip pans and responsive kinetic following";
+    } else if (q.includes("slow") || q.includes("eerie") || q.includes("hypnotic") || q.includes("meditative")) {
+      camera = "slow hypnotic orbital tracking and low-angle Dutch tilts with lingering stillness";
+    }
+
+    return `${lighting}. Masterful cinematic framing ${optics}. Camera execution features ${camera}, evoking an unmistakable visual identity for "${styleQuery}".`;
+  };
+
   const handleAskCinematographer = async () => {
-    if (!customModalName) return; 
-    if (!checkKeysAndShowSettings()) return;
+    const query = customModalName.trim();
+    if (!query) return; 
     setIsAutoFilling(true);
     try {
-        const prompt = `Act as a master cinematographer. Provide a concise description of the style or vibe described by: "${customModalName}". Focus on lighting, color palette, camera movement, and aesthetic mood. This will be used in an influence library for a filmmaker.`;
+        const prompt = `Act as a master cinematographer and film director. Provide an inspiring, highly specific 1-2 sentence description of the cinematic style, lighting, color palette, camera movement, and aesthetic mood described by: "${query}". Format it cleanly for use in an AI filmmaking prompt and influence library.`;
         let text = '';
-        if (provider === 'gemini') { 
-          const res = await generateContentServer({ model: geminiUtilityModel, contents: prompt }); 
-          text = res.text || ''; 
-          updateUsage(res); 
-        } else { 
-          text = await performProviderRequest(prompt); 
+        const hasGeminiKey = Boolean(getEffectiveGeminiKey());
+
+        if (hasGeminiKey || provider === 'gemini') { 
+          try {
+            const res = await generateContentServer({ model: 'gemini-3.8-flash', contents: prompt }); 
+            text = (res.text || '').trim(); 
+            updateUsage(res);
+          } catch (geminiErr) {
+            console.warn("Gemini style generation fallback:", geminiErr);
+          }
         }
         
-        const newInfluence = { id: generateUUID(), name: customModalName, desc: text.trim() };
-        setCustomInfluences(prev => [...prev, newInfluence]);
-        setSelectedInfluences(prev => [...prev, customModalName]);
+        if (!text) {
+          try {
+            text = (await performProviderRequest(prompt)).trim();
+          } catch (provErr) {
+            console.warn("Provider style generation fallback:", provErr);
+          }
+        }
+
+        // Guaranteed intelligent procedural synthesizer fallback if AI is offline or at rate limit
+        if (!text) {
+          text = synthesizeCinematicStyleFallback(query);
+        }
+        
+        const newInfluence = { id: generateUUID(), name: query, desc: text };
+        const updatedInfluences = [...customInfluences, newInfluence];
+        setCustomInfluences(updatedInfluences);
+        try { localStorage.setItem('audioarc_custom_influences', JSON.stringify(updatedInfluences)); } catch {}
+        setSelectedInfluences(prev => Array.from(new Set([...prev, query])));
         setCustomModalName('');
+        setNotification(`Cinematography style "${query}" added to library!`);
+        setTimeout(() => setNotification(null), 3500);
     } catch (e: any) {
-      handleApiError(e, "Ask Master Cinematographer");
+      console.error("Ask Cinematographer Error:", e);
+      const fallbackText = synthesizeCinematicStyleFallback(query);
+      const newInfluence = { id: generateUUID(), name: query, desc: fallbackText };
+      const updatedInfluences = [...customInfluences, newInfluence];
+      setCustomInfluences(updatedInfluences);
+      try { localStorage.setItem('audioarc_custom_influences', JSON.stringify(updatedInfluences)); } catch {}
+      setSelectedInfluences(prev => Array.from(new Set([...prev, query])));
+      setCustomModalName('');
+      setNotification(`Cinematography style "${query}" created!`);
+      setTimeout(() => setNotification(null), 3500);
     } finally {
       setIsAutoFilling(false);
     }
   };
 
   const handleAutoFillDescription = async () => {
-    if (!customModalName) return; 
-    if (!checkKeysAndShowSettings()) return;
+    const query = customModalName.trim();
+    if (!query) return; 
     setIsAutoFilling(true);
     try {
-        const prompt = `Describe the visual style of "${customModalName}" in one concise paragraph for a film director. Focus on lighting, colors, camera work, and mood.`;
+        const prompt = `Describe the visual style of "${query}" in one concise paragraph for a film director. Focus on lighting, colors, camera work, and mood.`;
         let text = '';
-        if (provider === 'gemini') { 
-          const res = await generateContentServer({ model: geminiUtilityModel, contents: prompt }); 
-          text = res.text || ''; 
-          updateUsage(res); 
-        } else { 
-          text = await performProviderRequest(prompt); 
+        const hasGeminiKey = Boolean(getEffectiveGeminiKey());
+
+        if (hasGeminiKey || provider === 'gemini') { 
+          try {
+            const res = await generateContentServer({ model: 'gemini-3.8-flash', contents: prompt }); 
+            text = (res.text || '').trim(); 
+            updateUsage(res);
+          } catch {}
         }
-        setCustomModalDesc(text.trim());
-    } catch (e: any) {
-      handleApiError(e, "Auto-fill Description");
+        
+        if (!text) {
+          try {
+            text = (await performProviderRequest(prompt)).trim();
+          } catch {}
+        }
+
+        if (!text) {
+          text = synthesizeCinematicStyleFallback(query);
+        }
+        setCustomModalDesc(text);
+    } catch {
+      setCustomModalDesc(synthesizeCinematicStyleFallback(query));
     } finally {
       setIsAutoFilling(false);
     }
@@ -7509,8 +7663,23 @@ Example:
                                 <input type="text" placeholder="Search directors, genres, vibes..." value={influenceSearch} onChange={e=>setInfluenceSearch(e.target.value)} className="bg-black border border-white/10 rounded-lg py-2 px-2 text-xs w-full focus:border-white/30 outline-none transition-all"/>
                             </div>
                             <div className="flex items-center gap-2">
-                                <input type="text" placeholder="Ask master cinematographer..." value={customModalName} onChange={e => setCustomModalName(e.target.value)} className="bg-black border border-white/10 rounded-lg py-2 px-2 text-xs w-full focus:border-white/30 outline-none transition-all"/>
-                                <button onClick={handleAskCinematographer} className="flex items-center gap-1 bg-purple-900/20 border border-purple-500/30 hover:bg-purple-900/40 text-purple-300 px-3 py-2 rounded-lg text-[10px] font-bold transition-colors uppercase tracking-wide shrink-0">Ask</button>
+                                <input 
+                                  type="text" 
+                                  placeholder="Ask master cinematographer..." 
+                                  value={customModalName} 
+                                  onChange={e => setCustomModalName(e.target.value)} 
+                                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAskCinematographer(); } }}
+                                  className="bg-black border border-white/10 rounded-lg py-2 px-2 text-xs w-full focus:border-white/30 outline-none transition-all"
+                                />
+                                <button 
+                                  onClick={handleAskCinematographer} 
+                                  disabled={isAutoFilling || !customModalName.trim()} 
+                                  className="flex items-center gap-1 bg-purple-900/30 border border-purple-500/40 hover:bg-purple-900/50 text-purple-300 px-3 py-2 rounded-lg text-[10px] font-bold transition-colors uppercase tracking-wide shrink-0 disabled:opacity-40"
+                                  title="Synthesize custom visual style"
+                                >
+                                  {isAutoFilling ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                                  <span>{isAutoFilling ? 'Crafting...' : 'Ask'}</span>
+                                </button>
                             </div>
                             <button onClick={()=>setShowCustomModal(true)} className="flex items-center gap-1 bg-blue-900/20 border border-blue-500/30 hover:bg-blue-900/40 text-blue-300 px-3 py-2 rounded-lg text-[10px] font-bold transition-colors uppercase tracking-wide shrink-0 w-full justify-center"><Plus size={10}/> Add Manual Custom</button>
                         </div>
