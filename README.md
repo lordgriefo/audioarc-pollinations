@@ -66,3 +66,4 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6.svg)
 ![Vite](https://img.shields.io/badge/Vite-5.0-646cff.svg)
 
+[![Made with pollinations.ai](https://raw.githubusercontent.com/pollinations/pollinations/main/packages/ui/src/brand/badge-made-with.svg)](https://pollinations.ai/?ref=badge)
